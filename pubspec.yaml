@@ -1,7 +1,7 @@
 name: small_refresh
-description: A sample command-line application.
+description: This is a refresh view based on CustomScrollView with Smooth animations,and you can customize your header view or footer view simply.
 version: 1.0.0
-repository: https://github.com/my_org/my_repo
+repository: https://github.com/flappygod/small_refresh.git
 
 environment:
   sdk: ^3.0.6

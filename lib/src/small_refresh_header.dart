@@ -4,7 +4,7 @@ import 'small_refresh_base.dart';
 import 'small_refresh.dart';
 
 ///small refresh header
-class DefaultSmallRefreshHeader extends SmallRefreshHeaderBase {
+class DefaultSmallRefreshHeader extends SmallRefreshHeaderWidget {
   //height
   final double height;
 
@@ -34,7 +34,8 @@ class DefaultSmallRefreshHeader extends SmallRefreshHeaderBase {
 }
 
 ///small refresh header state
-class DefaultHeaderRefreshFooterState extends SmallRefreshHeaderState<DefaultSmallRefreshHeader> {
+class DefaultHeaderRefreshFooterState
+    extends SmallRefreshHeaderState<DefaultSmallRefreshHeader> {
   @override
   Widget getNormalView() {
     return const SizedBox();

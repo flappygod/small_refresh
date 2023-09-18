@@ -4,7 +4,7 @@ import 'small_refresh_base.dart';
 import 'small_refresh.dart';
 
 ///small refresh footer
-class DefaultSmallRefreshFooter extends SmallRefreshFooterBase {
+class DefaultSmallRefreshFooter extends SmallRefreshFooterWidget {
   //height
   final double height;
 
@@ -38,7 +38,8 @@ class DefaultSmallRefreshFooter extends SmallRefreshFooterBase {
 }
 
 ///footer state
-class DefaultSmallRefreshFooterState extends SmallRefreshFooterState<DefaultSmallRefreshFooter> {
+class DefaultSmallRefreshFooterState
+    extends SmallRefreshFooterState<DefaultSmallRefreshFooter> {
   ///get hide view
   @override
   Widget getHideView() {

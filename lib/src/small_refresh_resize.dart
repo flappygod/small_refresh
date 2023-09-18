@@ -118,7 +118,8 @@ class _SmallSizeWidgetState extends State<SmallSizeWidget> {
       _clipHeight = 0;
     } else {
       _outerHeight = widget.controller.baseHeight;
-      _clipHeight = widget.controller.innerHeight + widget.controller._scrollOffset;
+      _clipHeight =
+          widget.controller.innerHeight + widget.controller._scrollOffset;
     }
     if (_clipHeight > widget.controller.innerHeight) {
       _clipHeight = widget.controller.innerHeight;
@@ -126,7 +127,9 @@ class _SmallSizeWidgetState extends State<SmallSizeWidget> {
     if (_clipHeight < widget.controller.baseHeight) {
       _clipHeight = widget.controller.baseHeight;
     }
-    if (_outerHeightF != _outerHeight || _innerHeightF != _innerHeight || _clipHeightF != _clipHeight) {
+    if (_outerHeightF != _outerHeight ||
+        _innerHeightF != _innerHeight ||
+        _clipHeightF != _clipHeight) {
       _outerHeightF = _outerHeight;
       _innerHeightF = _innerHeight;
       _clipHeightF = _clipHeight;

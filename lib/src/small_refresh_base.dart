@@ -44,7 +44,8 @@ class SmallRefreshBaseNotifier extends Listenable {
 }
 
 //refresh head state
-abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderBase> extends State<T> {
+abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget>
+    extends State<T> {
   //listener
   late SmallHeaderStatusChangeListener listener;
 
@@ -133,7 +134,8 @@ abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderBase> extends
 }
 
 ///small refresh footer state
-abstract class SmallRefreshFooterState<T extends SmallRefreshFooterBase> extends State<T> {
+abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget>
+    extends State<T> {
   //status change listener
   late SmallFooterStatusChangeListener _footerStatusChangeListener;
 
@@ -173,7 +175,9 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterBase> extends
       }
       _refresh();
     };
-    widget.getController().addFooterStatusChangeListener(_footerStatusChangeListener);
+    widget
+        .getController()
+        .addFooterStatusChangeListener(_footerStatusChangeListener);
 
     ///footer load listener
     _footerLoadListener = (events) {
@@ -202,9 +206,13 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterBase> extends
   @override
   void didUpdateWidget(oldWidget) {
     if (oldWidget.getController() != widget.getController()) {
-      oldWidget.getController().removeFooterStatusChangeListener(_footerStatusChangeListener);
+      oldWidget
+          .getController()
+          .removeFooterStatusChangeListener(_footerStatusChangeListener);
       oldWidget.getController().removeLoadChangeListener(_footerLoadListener);
-      widget.getController().addFooterStatusChangeListener(_footerStatusChangeListener);
+      widget
+          .getController()
+          .addFooterStatusChangeListener(_footerStatusChangeListener);
       widget.getController().addLoadChangeListener(_footerLoadListener);
     }
     super.didUpdateWidget(oldWidget);
@@ -212,7 +220,9 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterBase> extends
 
   @override
   void dispose() {
-    widget.getController().removeFooterStatusChangeListener(_footerStatusChangeListener);
+    widget
+        .getController()
+        .removeFooterStatusChangeListener(_footerStatusChangeListener);
     widget.getController().removeLoadChangeListener(_footerLoadListener);
     super.dispose();
   }
