@@ -125,6 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   ///build sliver
   List<Widget> _buildSliver() {
+    //or SliverList
     return dataList.map((e) {
       return SliverToBoxAdapter(
         child: Container(
