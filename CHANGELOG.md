@@ -1,3 +1,3 @@
-## 1.0.2
+## 1.0.3
 
-- add flag for footer view
+- Fix a bug in loading
