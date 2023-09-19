@@ -80,7 +80,7 @@ class DefaultSmallRefreshFooterState
   }
 
   @override
-  void onRefreshNotify() {
-    ///just do nothing
+  void onRefreshNotify(bool isHide, bool isLoading, bool isNoMore) {
+    ///do nothing
   }
 }

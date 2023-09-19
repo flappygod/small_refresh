@@ -197,7 +197,11 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget>
 
   //check to refresh
   void _refresh() {
-    onRefreshNotify();
+    onRefreshNotify(
+      _isHide,
+      _isLoading,
+      _isNoMore,
+    );
     if (mounted) {
       setState(() {});
     }
@@ -258,15 +262,20 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget>
     return getNorMalView();
   }
 
-  //normal and loading
+  ///normal and loading
   Widget getNorMalView();
 
   Widget getLoadingView();
 
-  //hide and no more data
+  ///hide and no more data
   Widget getHideView();
 
   Widget getNoMoreView();
 
-  void onRefreshNotify();
+  ///on refresh notify
+  void onRefreshNotify(
+    bool isHide,
+    bool isLoading,
+    bool isNoMore,
+  );
 }
