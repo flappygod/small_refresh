@@ -59,8 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final SmallRefreshController _refreshController = SmallRefreshController();
 
   int _dataCount = 0;
-  List dataList =
-      List.from({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
+  List dataList = List.from({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
 
   @override
   Widget build(BuildContext context) {
@@ -99,12 +98,16 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       slivers: _buildSliver(),
       onRefresh: () async {
+        _refreshController.footerHideStatus = FooterHideStatus.footerShow;
         await Future.delayed(const Duration(milliseconds: 2000));
         dataList.clear();
         _dataCount = 0;
         for (int s = 0; s < 10; s++) {
           _dataCount++;
           dataList.add(_dataCount.toString());
+        }
+        if (mounted) {
+          setState(() {});
         }
       },
       onLoad: () async {
@@ -114,9 +117,12 @@ class _MyHomePageState extends State<MyHomePage> {
             _dataCount++;
             dataList.add(_dataCount.toString());
           }
-          setState(() {});
         } else {
-          _refreshController.footerEnd();
+          ///no more data ,we stop load
+          _refreshController.stopLoad();
+          _refreshController.footerHideStatus = FooterHideStatus.footerHide;
+        }
+        if (mounted) {
           setState(() {});
         }
       },
@@ -133,9 +139,7 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(
-                  color: Colors.grey,
-                  width: 1 / MediaQuery.devicePixelRatioOf(context)),
+              bottom: BorderSide(color: Colors.grey, width: 1 / MediaQuery.devicePixelRatioOf(context)),
             ),
           ),
           child: Text(

@@ -5,31 +5,48 @@ import 'small_refresh_resize.dart';
 import 'small_refresh_space.dart';
 import 'small_stick_page.dart';
 
+//call back
 typedef SmallCallback = Future<void> Function();
 
 //refresh action listener
-typedef SmallRefreshListener = Function(SmallRefreshEvents events);
+typedef SmallRefreshActionListener = Function(SmallRefreshActionEvents events);
 
 //refresh load change listener
-typedef SmallLoadListener = Function(SmallLoadEvents events);
+typedef SmallLoadActionListener = Function(SmallLoadActionEvents events);
 
 //refresh status change listener
-typedef SmallHeaderStatusChangeListener = Function(
-    SmallRefreshHeaderChangeEvents events);
+typedef SmallHeaderStatusChangeListener = Function(SmallRefreshHeaderChangeEvents events);
 
 //refresh footer status change listener
-typedef SmallFooterStatusChangeListener = Function(
-    SmallRefreshFooterChangeEvents events);
+typedef SmallFooterStatusChangeListener = Function(SmallRefreshFooterChangeEvents events);
 
-//duration time
+//refresh footer hide change listener
+typedef SmallFooterHideStatusChangeListener = Function(SmallRefreshFooterHideEvents events);
+
+///duration time
 const int durationTime = 320;
 
-//load status
+///small refresh action events
+enum SmallRefreshActionEvents {
+  refreshActionStart,
+  refreshActionStop,
+}
+
+///small load action events
+enum SmallLoadActionEvents {
+  loadActionStart,
+  loadActionEnd,
+  loadActionStop,
+}
+
+///load status
 enum LoadStatus {
-  //LOAD_END
+  //load end
   loadStatusEnd,
-  //LOADING
+  //loading
   loadStatusLoading,
+  //loading stopped
+  loadStatusStopped,
 }
 
 ///refresh status
@@ -48,6 +65,12 @@ enum RefreshStatus {
   refreshStatusEnded,
 }
 
+///footer status
+enum FooterHideStatus {
+  footerHide,
+  footerShow,
+}
+
 ///refresh status change
 enum SmallRefreshHeaderChangeEvents {
   //refresh state change notify (when state changed)
@@ -60,24 +83,17 @@ enum SmallRefreshHeaderChangeEvents {
   refreshStateEnded,
 }
 
-///refresh state change notify
-enum SmallRefreshEvents {
-  refreshActionStart,
-  refreshActionStop,
-}
-
-///load state change notify
-enum SmallLoadEvents {
-  loadStateStart,
-  loadStateEnd,
-}
-
 ///load state change notify
 enum SmallRefreshFooterChangeEvents {
-  notifyShowFooter,
-  notifyHideFooter,
-  notifyFooterEnd,
-  notifyFooterReset,
+  loadEventsStart,
+  loadEventsEnd,
+  loadEventsStopped,
+}
+
+///load state change notify
+enum SmallRefreshFooterHideEvents {
+  footerEventHide,
+  footerEventShow,
 }
 
 class SmallRefresh extends StatefulWidget {
@@ -148,7 +164,10 @@ class SmallRefreshState extends State<SmallRefresh> {
   final GlobalKey _globalKeyHeader = GlobalKey();
 
   //lock
-  final Lock _stateChangeLock = Lock();
+  final Lock _refreshLock = Lock();
+
+  //lock
+  final Lock _loadLock = Lock();
 
   //notification lock
   final Lock _nestedLock = Lock();
@@ -156,80 +175,127 @@ class SmallRefreshState extends State<SmallRefresh> {
   //height can show
   final double _heightCanShow = 0.0001;
 
-  //listener
-  late SmallRefreshListener _listener;
+  //refresh action listener
+  late SmallRefreshActionListener _refreshActionListener;
+
+  //load action listener
+  late SmallLoadActionListener _loadActionListener;
+
+  //footer status change listener
+  late SmallFooterHideStatusChangeListener _footerHideStatusChangeListener;
 
   //refresh end
-  RefreshStatus _status = RefreshStatus.refreshStatusEnded;
+  RefreshStatus _refreshStatus = RefreshStatus.refreshStatusEnded;
 
   //load end
   LoadStatus _loadStatus = LoadStatus.loadStatusEnd;
 
   ///set status and also update controllers refresh status
-  set status(RefreshStatus refreshStatus) {
-    _status = refreshStatus;
+  set refreshStatus(RefreshStatus refreshStatus) {
+    _refreshStatus = refreshStatus;
     widget.controller.refreshStatus = refreshStatus;
+  }
+
+  ///set load status
+  set loadStatus(LoadStatus loadStatus) {
+    _loadStatus = loadStatus;
+    widget.controller.loadStatus = loadStatus;
+  }
+
+  ///init status
+  void _initStatus() {
+    _refreshStatus = widget.controller._refreshStatus;
+    _loadStatus = widget.controller._loadStatus;
   }
 
   ///init controller
   void _initController() {
-    //create small size widget
+    ///create small size widget
     widget.controller._scaleWidgetController = SmallSizeWidgetController(
       baseHeight: _heightCanShow,
-      innerHeight: widget.header != null ? widget.header!.getHeight() : 0,
+      innerHeight: widget.header != null ? widget.header!.height : 0,
     );
 
     ///listener
-    _listener = (value) {
+    _refreshActionListener = (value) {
       ///do nothing if has no clients
       if (widget.controller._scrollController.hasClients != true) {
         return;
       }
 
-      ///start refresh action
-      if (value == SmallRefreshEvents.refreshActionStart) {
-        ///refresh header is null ,do nothing
-        if (widget.header == null || widget.onRefresh == null) {
-          return;
-        }
+      ///actions
+      switch (value) {
+        case SmallRefreshActionEvents.refreshActionStart:
 
-        ///if refresh is end or is pull, animate to
-        if (_status == RefreshStatus.refreshStatusEnded ||
-            _status == RefreshStatus.refreshStatusPullAction) {
-          status = RefreshStatus.refreshStatusPullLock;
+          ///refresh header is null ,do nothing
+          if (widget.header == null || widget.onRefresh == null) {
+            return;
+          }
 
-          ///nested must not fling when refresh start
-          _forceNestedNotFling();
-          _forceNestedNotScroll();
+          ///if refresh is end or is pull, animate to
+          if (_refreshStatus == RefreshStatus.refreshStatusEnded || _refreshStatus == RefreshStatus.refreshStatusPullAction) {
+            refreshStatus = RefreshStatus.refreshStatusPullLock;
 
-          ///set show animation and auto animation flag
-          widget.controller._isShowAnimating = true;
-          widget.controller._isAutoAnimating = true;
-          Future future =
-              widget.controller._getCurrentScrollPosition().animateTo(
-                    -widget.header!.getHeight(),
-                    duration: const Duration(milliseconds: durationTime),
-                    curve: Curves.easeInOut,
-                  );
-          future.then((value) {
-            widget.controller._isShowAnimating = false;
-          });
-        }
-      }
+            ///nested must not fling when refresh start
+            _forceNestedNotFling();
+            _forceNestedNotScroll();
 
-      ///stop refresh action
-      else if (value == SmallRefreshEvents.refreshActionStop) {
-        if (widget.header == null || widget.onRefresh == null) {
-          return;
-        }
-        changeToEndAnim();
+            ///set show animation and auto animation flag
+            widget.controller._isShowAnimating = true;
+            widget.controller._isAutoAnimating = true;
+            Future future = widget.controller._getCurrentScrollPosition().animateTo(
+                  -widget.header!.height,
+                  duration: const Duration(milliseconds: durationTime),
+                  curve: Curves.easeInOut,
+                );
+            future.then((value) {
+              widget.controller._isShowAnimating = false;
+            });
+          }
+          break;
+        case SmallRefreshActionEvents.refreshActionStop:
+          if (widget.header == null || widget.onRefresh == null) {
+            return;
+          }
+          _changeToEndAnim();
+          break;
       }
     };
-    widget.controller._addActionListener(_listener);
+    widget.controller._addActionRefreshListener(_refreshActionListener);
+
+    ///load action listener
+    _loadActionListener = (value) {
+      switch (value) {
+        case SmallLoadActionEvents.loadActionStart:
+
+          ///action start set stopped
+          _changeToLoading(true);
+          break;
+
+        ///load action end
+        case SmallLoadActionEvents.loadActionEnd:
+          _changeToLoadEnd(true);
+          break;
+
+        ///load action stopped
+        case SmallLoadActionEvents.loadActionStop:
+          _changeToLoadStopped();
+          break;
+      }
+    };
+    widget.controller._addActionLoadListener(_loadActionListener);
+
+    ///footer status change listener
+    _footerHideStatusChangeListener = (value) {
+      if (mounted) {
+        setState(() {});
+      }
+    };
+    widget.controller.addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
   }
 
   ///if first refresh animation is set and header is not null,start refresh
-  void _initFreshIfNeedFirstTime() {
+  void _initFirstTime() {
     WidgetsBinding.instance.addPostFrameCallback((callback) async {
       if (widget.firstRefresh && widget.header != null) {
         widget.controller.startRefresh();
@@ -239,23 +305,30 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   @override
   void initState() {
+    _initStatus();
     _initController();
-    _initFreshIfNeedFirstTime();
+    _initFirstTime();
     super.initState();
   }
 
   @override
   void didUpdateWidget(oldWidget) {
     if (widget.controller != oldWidget.controller) {
-      oldWidget.controller._removeActionListener(_listener);
-      widget.controller._addActionListener(_listener);
+      oldWidget.controller._removeActionLoadListener(_loadActionListener);
+      oldWidget.controller._removeActionRefreshListener(_refreshActionListener);
+      oldWidget.controller.removeFooterHideStatusChangeListener(_footerHideStatusChangeListener);
+      widget.controller._addActionLoadListener(_loadActionListener);
+      widget.controller._addActionRefreshListener(_refreshActionListener);
+      widget.controller.addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
     }
     super.didUpdateWidget(oldWidget);
   }
 
   @override
   void dispose() {
-    widget.controller._removeActionListener(_listener);
+    widget.controller._removeActionLoadListener(_loadActionListener);
+    widget.controller._removeActionRefreshListener(_refreshActionListener);
+    widget.controller.addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
     widget.controller.dispose();
     super.dispose();
   }
@@ -311,8 +384,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         controller: widget.controller.scrollController,
         physics: _buildScrollPhysics(),
         cacheExtent: widget.cacheExtent,
-        keyboardDismissBehavior: widget.keyboardDismissBehavior ??
-            ScrollViewKeyboardDismissBehavior.manual,
+        keyboardDismissBehavior: widget.keyboardDismissBehavior ?? ScrollViewKeyboardDismissBehavior.manual,
         clipBehavior: widget.clipBehavior,
         slivers: slivers,
       ),
@@ -355,8 +427,7 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //build top header
   Widget? _buildTopHeader() {
-    if (widget.header != null &&
-        widget.controller._scaleWidgetController != null) {
+    if (widget.header != null && widget.controller._scaleWidgetController != null) {
       return SliverToBoxAdapter(
         child: SmallSizeWidget(
           key: _globalKeyHeader,
@@ -376,7 +447,7 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //build footer
   Widget? _buildBottomFooter() {
-    if (widget.footer != null) {
+    if (widget.footer != null && widget.controller.footerHideStatus == FooterHideStatus.footerShow) {
       Widget memFooter = SliverToBoxAdapter(
         child: widget.footer,
       );
@@ -448,17 +519,13 @@ class SmallRefreshState extends State<SmallRefresh> {
     //synchronized
     _nestedLock.synchronized(() {
       ///set current
-      if ((notification is ScrollStartNotification &&
-              notification.dragDetails != null) ||
-          (notification is ScrollUpdateNotification &&
-              notification.dragDetails != null)) {
-        widget.controller.stickController!
-            .setCurrentChildController(widget.controller);
+      if ((notification is ScrollStartNotification && notification.dragDetails != null) ||
+          (notification is ScrollUpdateNotification && notification.dragDetails != null)) {
+        widget.controller.stickController!.setCurrentChildController(widget.controller);
       }
 
       ///when nested locked by other scroll views
-      if (widget.controller !=
-          widget.controller.stickController?.getCurrentChildController()) {
+      if (widget.controller != widget.controller.stickController?.getCurrentChildController()) {
         return;
       }
 
@@ -469,32 +536,24 @@ class SmallRefreshState extends State<SmallRefresh> {
 
       ///start notification
       if (notification is ScrollStartNotification) {
-        if (widget.controller._stickTopKey.currentContext?.findRenderObject() !=
-                null &&
-            widget.controller._stickBtmKey.currentContext?.findRenderObject() !=
-                null) {
-          RenderBox boxTop = widget.controller._stickTopKey.currentContext
-              ?.findRenderObject() as RenderBox;
-          RenderBox boxBtm = widget.controller._stickBtmKey.currentContext
-              ?.findRenderObject() as RenderBox;
+        if (widget.controller._stickTopKey.currentContext?.findRenderObject() != null &&
+            widget.controller._stickBtmKey.currentContext?.findRenderObject() != null) {
+          RenderBox boxTop = widget.controller._stickTopKey.currentContext?.findRenderObject() as RenderBox;
+          RenderBox boxBtm = widget.controller._stickBtmKey.currentContext?.findRenderObject() as RenderBox;
 
           Offset topOffset = boxTop.localToGlobal(Offset.zero);
           Offset btmOffset = boxBtm.localToGlobal(Offset.zero);
 
           ///content height
-          double contentHeight =
-              btmOffset.dy - topOffset.dy - boxTop.size.height;
-          double totalHeight = widget.controller.scrollController.position
-                  .context.storageContext.size?.height ??
-              0;
+          double contentHeight = btmOffset.dy - topOffset.dy - boxTop.size.height;
+          double totalHeight = widget.controller.scrollController.position.context.storageContext.size?.height ?? 0;
           double needHeight = totalHeight - contentHeight;
 
           ///need height ,if over height less than 10
           if (needHeight < -10) {
             widget.controller._stickFlingBtmResizeController.setHeight(0);
           } else {
-            widget.controller._stickFlingBtmResizeController
-                .setHeight(needHeight + 10);
+            widget.controller._stickFlingBtmResizeController.setHeight(needHeight + 10);
           }
         }
       }
@@ -502,33 +561,22 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///if is scroll update
       if (notification is ScrollUpdateNotification) {
         //get scroll delta
-        double deltaA = notification.dragDetails?.delta.dy ??
-            -(notification.scrollDelta ?? 0);
+        double deltaA = notification.dragDetails?.delta.dy ?? -(notification.scrollDelta ?? 0);
         //check is user gesture
         bool isGesture = (notification.dragDetails != null);
         //top resilience
-        bool isResilienceTop = !isGesture &&
-            widget.controller._nestedFatherOut &&
-            widget.controller._getCurrentScrollPosition().pixels < 0;
+        bool isResilienceTop = !isGesture && widget.controller._nestedFatherOut && widget.controller._getCurrentScrollPosition().pixels < 0;
         //no scroll space
-        bool isNoScrollSpace =
-            (widget.controller._getCurrentScrollPosition().maxScrollExtent ==
-                0);
+        bool isNoScrollSpace = (widget.controller._getCurrentScrollPosition().maxScrollExtent == 0);
 
         ///pull down when this list has no scroll space
-        if (isGesture &&
-            deltaA > 0 &&
-            isNoScrollSpace &&
-            widget.controller.stickController!.scrollController.offset != 0) {
-          widget.controller._getCurrentScrollPosition().correctBy(
-              _getNestedScrollStart() -
-                  widget.controller._getCurrentScrollPosition().pixels);
-          double jumpTo = widget.controller.stickController!.scrollController
-                  .position.pixels -
-              deltaA;
+        if (isGesture && deltaA > 0 && isNoScrollSpace && widget.controller.stickController!.scrollController.offset != 0) {
+          widget.controller
+              ._getCurrentScrollPosition()
+              .correctBy(_getNestedScrollStart() - widget.controller._getCurrentScrollPosition().pixels);
+          double jumpTo = widget.controller.stickController!.scrollController.position.pixels - deltaA;
           jumpTo = jumpTo < 0 ? 0 : jumpTo;
-          widget.controller.stickController!.scrollController.position
-              .jumpTo(jumpTo);
+          widget.controller.stickController!.scrollController.position.jumpTo(jumpTo);
           return;
         }
 
@@ -536,94 +584,57 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (isGesture &&
             deltaA < 0 &&
             isNoScrollSpace &&
-            (widget.controller.scrollController.offset * 10).toInt() >
-                (_getNestedScrollStart() * 10).toInt() &&
-            (widget.controller.stickController!.scrollController.offset * 10)
-                    .toInt() !=
-                (_getNestedScrollMax() * 10).toInt()) {
-          widget.controller._getCurrentScrollPosition().correctBy(
-              _getNestedScrollStart() -
-                  widget.controller._getCurrentScrollPosition().pixels);
-          double jumpTo = widget.controller.stickController!.scrollController
-                  .position.pixels -
-              deltaA;
-          jumpTo =
-              jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
-          widget.controller.stickController!.scrollController.position
-              .jumpTo(jumpTo);
+            (widget.controller.scrollController.offset * 10).toInt() > (_getNestedScrollStart() * 10).toInt() &&
+            (widget.controller.stickController!.scrollController.offset * 10).toInt() != (_getNestedScrollMax() * 10).toInt()) {
+          widget.controller
+              ._getCurrentScrollPosition()
+              .correctBy(_getNestedScrollStart() - widget.controller._getCurrentScrollPosition().pixels);
+          double jumpTo = widget.controller.stickController!.scrollController.position.pixels - deltaA;
+          jumpTo = jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
+          widget.controller.stickController!.scrollController.position.jumpTo(jumpTo);
           return;
         }
 
         ///pull down normal
         if (deltaA > 0 &&
             widget.controller.stickController!.scrollController.offset > 0 &&
-            (widget.controller.stickController!.scrollController.offset * 10)
-                    .toInt() <=
-                (_getNestedScrollMax() * 10).toInt() &&
-            (widget.controller._getCurrentScrollPosition().pixels * 10)
-                    .toInt() <
-                (_getNestedScrollStart() * 10).toInt()) {
-          double jumpTo = widget.controller.stickController!.scrollController
-                  .position.pixels -
-              deltaA;
-          if ((widget.controller._getCurrentScrollPosition().pixels -
-                      _getNestedScrollStart())
-                  .abs() <
-              deltaA) {
-            double jumpCross =
-                (widget.controller._getCurrentScrollPosition().pixels -
-                        _getNestedScrollStart())
-                    .abs();
-            jumpTo = widget.controller.stickController!.scrollController
-                    .position.pixels -
-                jumpCross;
-            widget.controller._getCurrentScrollPosition().correctBy(
-                _getNestedScrollStart() -
-                    widget.controller._getCurrentScrollPosition().pixels);
+            (widget.controller.stickController!.scrollController.offset * 10).toInt() <= (_getNestedScrollMax() * 10).toInt() &&
+            (widget.controller._getCurrentScrollPosition().pixels * 10).toInt() < (_getNestedScrollStart() * 10).toInt()) {
+          double jumpTo = widget.controller.stickController!.scrollController.position.pixels - deltaA;
+          if ((widget.controller._getCurrentScrollPosition().pixels - _getNestedScrollStart()).abs() < deltaA) {
+            double jumpCross = (widget.controller._getCurrentScrollPosition().pixels - _getNestedScrollStart()).abs();
+            jumpTo = widget.controller.stickController!.scrollController.position.pixels - jumpCross;
+            widget.controller
+                ._getCurrentScrollPosition()
+                .correctBy(_getNestedScrollStart() - widget.controller._getCurrentScrollPosition().pixels);
           } else {
             widget.controller._getCurrentScrollPosition().correctBy(deltaA);
           }
           jumpTo = jumpTo < 0 ? 0 : jumpTo;
-          widget.controller.stickController!.scrollController.position
-              .jumpTo(jumpTo);
+          widget.controller.stickController!.scrollController.position.jumpTo(jumpTo);
         }
 
         ///pull up normal
         if (deltaA < 0 &&
             !isResilienceTop &&
-            (widget.controller.scrollController.offset * 10).toInt() >
-                (_getNestedScrollStart() * 10).toInt() &&
-            (widget.controller.stickController!.scrollController.offset * 10)
-                    .toInt() <
-                (_getNestedScrollMax() * 10).toInt()) {
-          double jumpTo = widget.controller.stickController!.scrollController
-                  .position.pixels -
-              deltaA;
-          if (widget.controller.scrollController.offset -
-                  _getNestedScrollStart() <
-              deltaA.abs()) {
-            double jumpCross =
-                (widget.controller._getCurrentScrollPosition().pixels -
-                        _getNestedScrollStart())
-                    .abs();
-            jumpTo = widget.controller.stickController!.scrollController
-                    .position.pixels +
-                jumpCross;
-            widget.controller._getCurrentScrollPosition().correctBy(
-                _getNestedScrollStart() -
-                    widget.controller._getCurrentScrollPosition().pixels);
+            (widget.controller.scrollController.offset * 10).toInt() > (_getNestedScrollStart() * 10).toInt() &&
+            (widget.controller.stickController!.scrollController.offset * 10).toInt() < (_getNestedScrollMax() * 10).toInt()) {
+          double jumpTo = widget.controller.stickController!.scrollController.position.pixels - deltaA;
+          if (widget.controller.scrollController.offset - _getNestedScrollStart() < deltaA.abs()) {
+            double jumpCross = (widget.controller._getCurrentScrollPosition().pixels - _getNestedScrollStart()).abs();
+            jumpTo = widget.controller.stickController!.scrollController.position.pixels + jumpCross;
+            widget.controller
+                ._getCurrentScrollPosition()
+                .correctBy(_getNestedScrollStart() - widget.controller._getCurrentScrollPosition().pixels);
           } else {
             widget.controller._getCurrentScrollPosition().correctBy(deltaA);
           }
-          jumpTo =
-              jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
-          widget.controller.stickController!.scrollController.position
-              .jumpTo(jumpTo);
+          jumpTo = jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
+          widget.controller.stickController!.scrollController.position.jumpTo(jumpTo);
         }
       }
       //set not fling
-      if (notification is ScrollUpdateNotification ||
-          notification is ScrollStartNotification) {
+      if (notification is ScrollUpdateNotification || notification is ScrollStartNotification) {
         if (widget.controller.stickController!.scrollController.offset <= 0) {
           _forceNestedNotFling();
         } else {
@@ -651,11 +662,8 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.controller.stickController == null) {
       return false;
     }
-    if (widget.controller.stickController?.getCurrentChildController() ==
-        widget.controller) {
-      widget.controller
-          ._getCurrentScrollPosition()
-          .jumpTo(widget.controller._getCurrentScrollPosition().pixels);
+    if (widget.controller.stickController?.getCurrentChildController() == widget.controller) {
+      widget.controller._getCurrentScrollPosition().jumpTo(widget.controller._getCurrentScrollPosition().pixels);
     }
     return true;
   }
@@ -686,111 +694,102 @@ class SmallRefreshState extends State<SmallRefresh> {
 
     ///start pull
     if (scrollHeight > 0) {
-      changeToPull();
+      _changeToPull();
     }
 
     ///refresh pull progress
-    if (_status == RefreshStatus.refreshStatusPullAction) {
-      if (scrollHeight > 0 && scrollHeight <= widget.header!.getHeight()) {
-        widget.controller
-            ._refreshDragProgress(scrollHeight / widget.header!.getHeight());
-      } else if (scrollHeight >= widget.header!.getHeight()) {
-        widget.controller._refreshDragProgressOver(
-            scrollHeight / widget.header!.getHeight());
+    if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
+      if (scrollHeight > 0 && scrollHeight <= widget.header!.height) {
+        widget.controller._refreshDragProgress(scrollHeight / widget.header!.height);
+      } else if (scrollHeight >= widget.header!.height) {
+        widget.controller._refreshDragProgressOver(scrollHeight / widget.header!.height);
       }
     }
 
     ///if pull out,and touch gone,change to pull out
-    if (scrollHeight >= widget.header!.getHeight() &&
-        notification is ScrollUpdateNotification &&
-        notification.dragDetails == null) {
-      changeToPullOut(scrollHeight);
+    if (scrollHeight >= widget.header!.height && notification is ScrollUpdateNotification && notification.dragDetails == null) {
+      _changeToPullOut(scrollHeight);
     }
 
     ///drag interrupt
-    if (notification is ScrollUpdateNotification &&
-        notification.dragDetails != null) {
-      changeToInterrupt(scrollHeight);
+    if (notification is ScrollUpdateNotification && notification.dragDetails != null) {
+      _changeToInterrupt(scrollHeight);
     }
 
     ///if pulled out ,change to refreshing
     if (notification is ScrollEndNotification) {
-      changeToRefreshing();
+      _changeToRefreshing();
     }
 
     ///is refreshing and end
     if (notification is ScrollEndNotification &&
-        widget.controller.refreshStatus ==
-            RefreshStatus.refreshStatusEndAnimation &&
+        widget.controller.refreshStatus == RefreshStatus.refreshStatusEndAnimation &&
         widget.controller._getCurrentScrollPosition().pixels == 0) {
-      changeToEnd();
+      _changeToEnd();
     }
   }
 
   //change to pull
-  Future<void> changeToPull() async {
-    if (_status == RefreshStatus.refreshStatusEnded ||
-        _status == RefreshStatus.refreshStatusPullLock) {
-      await _stateChangeLock.synchronized(() {
-        if (_status == RefreshStatus.refreshStatusEnded ||
-            _status == RefreshStatus.refreshStatusPullLock) {
-          status = RefreshStatus.refreshStatusPullAction;
+  Future<void> _changeToPull() async {
+    if (_refreshStatus == RefreshStatus.refreshStatusEnded || _refreshStatus == RefreshStatus.refreshStatusPullLock) {
+      await _refreshLock.synchronized(() {
+        if (_refreshStatus == RefreshStatus.refreshStatusEnded || _refreshStatus == RefreshStatus.refreshStatusPullLock) {
+          refreshStatus = RefreshStatus.refreshStatusPullAction;
         }
       });
     }
   }
 
   //change to pull out
-  Future<void> changeToPullOut(double scrollHeight) async {
-    if (_status == RefreshStatus.refreshStatusPullAction) {
-      await _stateChangeLock.synchronized(() {
-        if (_status == RefreshStatus.refreshStatusPullAction) {
-          status = RefreshStatus.refreshStatusPullOver;
+  Future<void> _changeToPullOut(double scrollHeight) async {
+    if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
+      await _refreshLock.synchronized(() {
+        if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
+          refreshStatus = RefreshStatus.refreshStatusPullOver;
           widget.controller._scaleWidgetController?.setSmallHeadShow(true);
-          widget.controller
-              ._getCurrentScrollPosition()
-              .jumpTo(widget.header!.getHeight() - scrollHeight);
+          widget.controller._getCurrentScrollPosition().jumpTo(widget.header!.height - scrollHeight);
         }
       });
     }
   }
 
   //change to pull out
-  Future<void> changeToInterrupt(double scrollHeight) async {
+  Future<void> _changeToInterrupt(double scrollHeight) async {
     //all animation set gone
     widget.controller._isHideAnimating = false;
     widget.controller._isAutoAnimating = false;
     widget.controller._isShowAnimating = false;
     //change to end,if _status == RefreshStatus.Refresh_ANIMATION
-    changeToEnd();
+    _changeToEnd();
   }
 
   //pull end
-  Future<void> changeToRefreshing() async {
+  Future<void> _changeToRefreshing() async {
     //if pulled out
-    if (_status == RefreshStatus.refreshStatusPullOver) {
-      await _stateChangeLock.synchronized(() {
-        if (_status == RefreshStatus.refreshStatusPullOver) {
-          status = RefreshStatus.refreshStatusRefreshing;
+    if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
+      await _refreshLock.synchronized(() async {
+        if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
+          refreshStatus = RefreshStatus.refreshStatusRefreshing;
+          await _changeToLoadEnd(true);
           Future future = widget.onRefresh!();
           future.then((value) async {
             if (mounted) {
-              changeToEndAnim();
+              _changeToEndAnim();
             }
           }).catchError((error) async {
             if (mounted) {
-              changeToEndAnim();
+              _changeToEndAnim();
             }
           });
         }
       });
     }
     //if not pulled out
-    if (_status == RefreshStatus.refreshStatusPullAction) {
-      await _stateChangeLock.synchronized(() {
-        if (_status == RefreshStatus.refreshStatusPullAction) {
+    if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
+      await _refreshLock.synchronized(() {
+        if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
           //just set state ,and the scroll controller resilience
-          status = RefreshStatus.refreshStatusEnded;
+          refreshStatus = RefreshStatus.refreshStatusEnded;
           widget.controller._isAutoAnimating = false;
         }
       });
@@ -799,45 +798,44 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //start end animation
   //just use scroll controller resilience
-  Future<void> changeToEndAnim() async {
+  Future<void> _changeToEndAnim() async {
     if (widget.controller._scrollController.hasClients != true) {
       return;
     }
     //if is Refresh_REFRESHING
-    if (_status == RefreshStatus.refreshStatusRefreshing) {
+    if (_refreshStatus == RefreshStatus.refreshStatusRefreshing) {
       //lock
-      await _stateChangeLock.synchronized(() {
+      await _refreshLock.synchronized(() {
         //check twice
-        if (_status == RefreshStatus.refreshStatusRefreshing) {
+        if (_refreshStatus == RefreshStatus.refreshStatusRefreshing) {
           //end anim must not fling
           _forceNestedNotFling();
           //end anim must not scroll
           _forceNestedNotScroll();
           //check current position,if header is no longer show,just set status
-          if (widget.controller.scrollController.offset.toInt() >=
-              widget.header!.getHeight().toInt()) {
+          if (widget.controller.scrollController.offset.toInt() >= widget.header!.height.toInt()) {
             //set refresh animation
             //refresh end and jump for resilience
             widget.controller._scaleWidgetController?.setSmallHeadShow(false);
             //jump to position
-            widget.controller._getCurrentScrollPosition().jumpTo(
-                widget.controller._getCurrentScrollPosition().pixels -
-                    widget.header!.getHeight());
+            widget.controller
+                ._getCurrentScrollPosition()
+                .jumpTo(widget.controller._getCurrentScrollPosition().pixels - widget.header!.height);
             //change to end directly
-            status = RefreshStatus.refreshStatusEnded;
+            refreshStatus = RefreshStatus.refreshStatusEnded;
             widget.controller._isAutoAnimating = false;
             widget.controller._isHideAnimating = false;
           } else {
             //set refresh animation
-            status = RefreshStatus.refreshStatusEndAnimation;
+            refreshStatus = RefreshStatus.refreshStatusEndAnimation;
             //set hide animation
             widget.controller._isHideAnimating = true;
             //refresh end and jump for resilience
             widget.controller._scaleWidgetController?.setSmallHeadShow(false);
             //jump to position
-            widget.controller._getCurrentScrollPosition().jumpTo(
-                widget.controller._getCurrentScrollPosition().pixels -
-                    widget.header!.getHeight());
+            widget.controller
+                ._getCurrentScrollPosition()
+                .jumpTo(widget.controller._getCurrentScrollPosition().pixels - widget.header!.height);
           }
         }
       });
@@ -845,11 +843,11 @@ class SmallRefreshState extends State<SmallRefresh> {
   }
 
   //change to end anim
-  Future<void> changeToEnd() async {
-    if (_status == RefreshStatus.refreshStatusEndAnimation) {
-      await _stateChangeLock.synchronized(() {
-        if (_status == RefreshStatus.refreshStatusEndAnimation) {
-          status = RefreshStatus.refreshStatusEnded;
+  Future<void> _changeToEnd() async {
+    if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
+      await _refreshLock.synchronized(() {
+        if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
+          refreshStatus = RefreshStatus.refreshStatusEnded;
           widget.controller._isAutoAnimating = false;
           widget.controller._isHideAnimating = false;
         }
@@ -863,42 +861,74 @@ class SmallRefreshState extends State<SmallRefresh> {
       return;
     }
     if (notification is ScrollEndNotification &&
-        notification.metrics.extentAfter <= widget.footer!.getHeight() &&
-        _status == RefreshStatus.refreshStatusEnded) {
-      changeToLoading();
+        notification.metrics.extentAfter <= widget.footer!.height &&
+        _refreshStatus == RefreshStatus.refreshStatusEnded) {
+      _changeToLoading(false);
     }
   }
 
-  //change to loading
-  Future<void> changeToLoading() async {
-    if (_loadStatus == LoadStatus.loadStatusEnd) {
-      await _stateChangeLock.synchronized(() async {
-        if (_loadStatus == LoadStatus.loadStatusEnd) {
-          _loadStatus = LoadStatus.loadStatusLoading;
+  ///change to loading
+  Future<void> _changeToLoading(bool force) async {
+    if (force) {
+      ///force to loading
+      if (_loadStatus != LoadStatus.loadStatusLoading) {
+        await _loadLock.synchronized(() async {
           try {
-            await Future.delayed(const Duration(milliseconds: 10));
-            widget.controller._loadStart();
-            await widget.onLoad!();
-            if (mounted) {
-              changeToLoadEnd();
+            if (_loadStatus != LoadStatus.loadStatusLoading) {
+              loadStatus = LoadStatus.loadStatusLoading;
+              await widget.onLoad!();
+              loadStatus = LoadStatus.loadStatusEnd;
             }
           } catch (error) {
-            if (mounted) {
-              changeToLoadEnd();
-            }
+            loadStatus = LoadStatus.loadStatusEnd;
           }
-        }
-      });
+        });
+      }
+    } else {
+      ///change to loading
+      if (_loadStatus == LoadStatus.loadStatusEnd) {
+        await _loadLock.synchronized(() async {
+          try {
+            if (_loadStatus == LoadStatus.loadStatusEnd) {
+              loadStatus = LoadStatus.loadStatusLoading;
+              await widget.onLoad!();
+              loadStatus = LoadStatus.loadStatusEnd;
+            }
+          } catch (error) {
+            loadStatus = LoadStatus.loadStatusEnd;
+          }
+        });
+      }
     }
   }
 
-  //change to load end
-  Future<void> changeToLoadEnd() async {
-    if (_loadStatus == LoadStatus.loadStatusLoading) {
-      await _stateChangeLock.synchronized(() {
-        if (_loadStatus == LoadStatus.loadStatusLoading) {
-          _loadStatus = LoadStatus.loadStatusEnd;
-          widget.controller._loadEnd();
+  ///change to load end
+  Future<void> _changeToLoadEnd(bool force) async {
+    if (force) {
+      if (_loadStatus != LoadStatus.loadStatusEnd) {
+        await _loadLock.synchronized(() {
+          if (_loadStatus != LoadStatus.loadStatusEnd) {
+            loadStatus = LoadStatus.loadStatusEnd;
+          }
+        });
+      }
+    } else {
+      if (_loadStatus == LoadStatus.loadStatusLoading) {
+        await _loadLock.synchronized(() {
+          if (_loadStatus == LoadStatus.loadStatusLoading) {
+            loadStatus = LoadStatus.loadStatusEnd;
+          }
+        });
+      }
+    }
+  }
+
+  ///change to stopped
+  Future<void> _changeToLoadStopped() async {
+    if (_loadStatus != LoadStatus.loadStatusStopped) {
+      await _loadLock.synchronized(() {
+        if (_loadStatus != LoadStatus.loadStatusStopped) {
+          loadStatus = LoadStatus.loadStatusStopped;
         }
       });
     }
@@ -907,20 +937,32 @@ class SmallRefreshState extends State<SmallRefresh> {
 
 /// header base
 abstract class SmallRefreshHeaderWidget extends StatefulWidget {
-  const SmallRefreshHeaderWidget({Key? key}) : super(key: key);
+  ///controller
+  final SmallRefreshController controller;
 
-  double getHeight();
+  ///height
+  final double height;
 
-  SmallRefreshController getController();
+  const SmallRefreshHeaderWidget({
+    Key? key,
+    required this.controller,
+    required this.height,
+  }) : super(key: key);
 }
 
 /// footer base
 abstract class SmallRefreshFooterWidget extends StatefulWidget {
-  const SmallRefreshFooterWidget({Key? key}) : super(key: key);
+  ///controller
+  final SmallRefreshController controller;
 
-  double getHeight();
+  ///height
+  final double height;
 
-  SmallRefreshController getController();
+  const SmallRefreshFooterWidget({
+    Key? key,
+    required this.controller,
+    required this.height,
+  }) : super(key: key);
 }
 
 ///small refresh controller
@@ -948,12 +990,10 @@ class SmallRefreshController {
   SmallSizeWidgetController? _scaleWidgetController;
 
   //resize controller
-  final SmallResizeWidgetController _stickFlingTopResizeController =
-      SmallResizeWidgetController(0);
+  final SmallResizeWidgetController _stickFlingTopResizeController = SmallResizeWidgetController(0);
 
   //resize controller
-  final SmallResizeWidgetController _stickFlingBtmResizeController =
-      SmallResizeWidgetController(0);
+  final SmallResizeWidgetController _stickFlingBtmResizeController = SmallResizeWidgetController(0);
 
   final GlobalKey _stickTopKey = GlobalKey();
   final GlobalKey _stickBtmKey = GlobalKey();
@@ -968,11 +1008,9 @@ class SmallRefreshController {
     }
     if (_nestedFlingSpaceDisappear == true) {
       _stickFlingTopResizeController.setHeight(0);
-      _getCurrentScrollPosition()
-          .correctBy(-(stickController?.headHeight ?? 0));
+      _getCurrentScrollPosition().correctBy(-(stickController?.headHeight ?? 0));
     } else {
-      _stickFlingTopResizeController
-          .setHeight((stickController?.headHeight ?? 0));
+      _stickFlingTopResizeController.setHeight((stickController?.headHeight ?? 0));
       _getCurrentScrollPosition().correctBy((stickController?.headHeight ?? 0));
     }
   }
@@ -1002,20 +1040,29 @@ class SmallRefreshController {
   //lock
   Lock lock = Lock();
 
-  //init status
+  ///refresh status
   RefreshStatus _refreshStatus = RefreshStatus.refreshStatusEnded;
 
+  ///load status
+  LoadStatus _loadStatus = LoadStatus.loadStatusEnd;
+
+  ///hide status
+  FooterHideStatus _footerHideStatus = FooterHideStatus.footerShow;
+
   ///action listeners
-  List<SmallRefreshListener> actionListeners = [];
+  List<SmallRefreshActionListener> actionRefreshListeners = [];
 
   ///load listeners
-  List<SmallLoadListener> loadListeners = [];
+  List<SmallLoadActionListener> actionLoadListeners = [];
 
   ///status change listeners
   List<SmallHeaderStatusChangeListener> headerStatusListeners = [];
 
   ///footer status listener
   List<SmallFooterStatusChangeListener> footerStatusListeners = [];
+
+  ///footer hide status listener
+  List<SmallFooterHideStatusChangeListener> footerHideStatusListener = [];
 
   //start
   SmallRefreshController({
@@ -1037,26 +1084,62 @@ class SmallRefreshController {
     if (_refreshStatus != status) {
       _refreshStatus = status;
       if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
-        _refreshStart();
+        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateStart);
       }
       if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
-        _refreshCanTrigger();
+        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStatePullOver);
       }
       if (_refreshStatus == RefreshStatus.refreshStatusRefreshing) {
-        _refreshRefreshing();
+        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateRefreshing);
       }
       if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
-        _refreshEndAnimation();
+        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateEndAnim);
       }
       if (_refreshStatus == RefreshStatus.refreshStatusEnded) {
-        _refreshEnd();
+        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateEnded);
       }
     }
   }
 
-  //refresh status
   RefreshStatus get refreshStatus {
     return _refreshStatus;
+  }
+
+  ///set load status
+  set loadStatus(LoadStatus status) {
+    if (_loadStatus != status) {
+      _loadStatus = status;
+      if (_loadStatus == LoadStatus.loadStatusLoading) {
+        _notifyFooterStatusChangeListener(SmallRefreshFooterChangeEvents.loadEventsStart);
+      }
+      if (_loadStatus == LoadStatus.loadStatusEnd) {
+        _notifyFooterStatusChangeListener(SmallRefreshFooterChangeEvents.loadEventsEnd);
+      }
+      if (_loadStatus == LoadStatus.loadStatusStopped) {
+        _notifyFooterStatusChangeListener(SmallRefreshFooterChangeEvents.loadEventsStopped);
+      }
+    }
+  }
+
+  LoadStatus get loadStatus {
+    return _loadStatus;
+  }
+
+  ///set footer hide status
+  set footerHideStatus(FooterHideStatus status) {
+    if (_footerHideStatus != status) {
+      _footerHideStatus = status;
+      if (_footerHideStatus == FooterHideStatus.footerHide) {
+        _notifyFooterHideStatusChangeListener(SmallRefreshFooterHideEvents.footerEventHide);
+      }
+      if (_footerHideStatus == FooterHideStatus.footerShow) {
+        _notifyFooterHideStatusChangeListener(SmallRefreshFooterHideEvents.footerEventShow);
+      }
+    }
+  }
+
+  FooterHideStatus get footerHideStatus {
+    return _footerHideStatus;
   }
 
   //can refresh
@@ -1066,98 +1149,75 @@ class SmallRefreshController {
 
   ///action listeners
   Future<void> startRefresh() {
-    return _notifyActionListener(SmallRefreshEvents.refreshActionStart);
+    return _notifyActionRefreshListener(SmallRefreshActionEvents.refreshActionStart);
   }
 
   Future<void> endRefresh() {
-    return _notifyActionListener(SmallRefreshEvents.refreshActionStop);
+    return _notifyActionRefreshListener(SmallRefreshActionEvents.refreshActionStop);
   }
 
-  ///notify refresh state changed
-  Future<void> _refreshStart() {
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStateStart);
+  Future<void> startLoad() {
+    return _notifyActionLoadListener(SmallLoadActionEvents.loadActionStart);
   }
 
+  Future<void> endLoad() {
+    return _notifyActionLoadListener(SmallLoadActionEvents.loadActionEnd);
+  }
+
+  Future<void> stopLoad() {
+    return _notifyActionLoadListener(SmallLoadActionEvents.loadActionStop);
+  }
+
+  ///drag progress listeners
   Future<void> _refreshDragProgress(double progress) {
     this.progress = progress;
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStateProgress);
+    return _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateProgress);
   }
 
   Future<void> _refreshDragProgressOver(double progress) {
     this.progress = progress;
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStateProgressOver);
+    return _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateProgressOver);
   }
 
-  Future<void> _refreshCanTrigger() {
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStatePullOver);
-  }
-
-  Future<void> _refreshRefreshing() {
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStateRefreshing);
-  }
-
-  Future<void> _refreshEndAnimation() {
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStateEndAnim);
-  }
-
-  Future<void> _refreshEnd() {
-    return _notifyHeaderStatusChangeListener(
-        SmallRefreshHeaderChangeEvents.refreshStateEnded);
-  }
-
-  ///notify load state change listeners
-  Future<void> _loadEnd() {
-    return _notifyLoadChangeListener(SmallLoadEvents.loadStateEnd);
-  }
-
-  Future<void> _loadStart() {
-    return _notifyLoadChangeListener(SmallLoadEvents.loadStateStart);
-  }
-
-  ///notify footer status change listener
-  Future<void> footerShow() {
-    return _notifyFooterStatusChangeListener(
-        SmallRefreshFooterChangeEvents.notifyShowFooter);
-  }
-
-  Future<void> footerHide() {
-    return _notifyFooterStatusChangeListener(
-        SmallRefreshFooterChangeEvents.notifyHideFooter);
-  }
-
-  Future<void> footerEnd() {
-    return _notifyFooterStatusChangeListener(
-        SmallRefreshFooterChangeEvents.notifyFooterEnd);
-  }
-
-  Future<void> footerReset() {
-    return _notifyFooterStatusChangeListener(
-        SmallRefreshFooterChangeEvents.notifyFooterReset);
-  }
-
-  ///action listeners
-  void _addActionListener(SmallRefreshListener listener) {
+  ///action listeners refresh
+  void _addActionRefreshListener(SmallRefreshActionListener listener) {
     lock.synchronized(() {
-      actionListeners.add(listener);
+      actionRefreshListeners.add(listener);
     });
   }
 
-  void _removeActionListener(SmallRefreshListener listener) {
+  void _removeActionRefreshListener(SmallRefreshActionListener listener) {
     lock.synchronized(() {
-      actionListeners.add(listener);
+      actionRefreshListeners.add(listener);
     });
   }
 
-  Future _notifyActionListener(SmallRefreshEvents value) {
+  Future _notifyActionRefreshListener(SmallRefreshActionEvents value) {
     return lock.synchronized(() {
-      for (int s = 0; s < actionListeners.length; s++) {
-        SmallRefreshListener listener = actionListeners[s];
+      for (int s = 0; s < actionRefreshListeners.length; s++) {
+        SmallRefreshActionListener listener = actionRefreshListeners[s];
+        listener(value);
+      }
+    });
+  }
+
+  ///action listeners load
+  void _addActionLoadListener(SmallLoadActionListener listener) {
+    lock.synchronized(() {
+      actionLoadListeners.add(listener);
+    });
+  }
+
+  void _removeActionLoadListener(SmallLoadActionListener listener) {
+    lock.synchronized(() {
+      actionLoadListeners.add(listener);
+    });
+  }
+
+  Future _notifyActionLoadListener(SmallLoadActionEvents value) {
+    return lock.synchronized(() {
+      for (int s = 0; s < actionLoadListeners.length; s++) {
+        SmallLoadActionListener listener = actionLoadListeners[s];
         listener(value);
       }
     });
@@ -1170,15 +1230,13 @@ class SmallRefreshController {
     });
   }
 
-  void removeHeaderStatusChangeListener(
-      SmallHeaderStatusChangeListener listener) {
+  void removeHeaderStatusChangeListener(SmallHeaderStatusChangeListener listener) {
     lock.synchronized(() {
       headerStatusListeners.add(listener);
     });
   }
 
-  Future _notifyHeaderStatusChangeListener(
-      SmallRefreshHeaderChangeEvents value) {
+  Future _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents value) {
     return lock.synchronized(() {
       for (int s = 0; s < headerStatusListeners.length; s++) {
         SmallHeaderStatusChangeListener listener = headerStatusListeners[s];
@@ -1194,15 +1252,13 @@ class SmallRefreshController {
     });
   }
 
-  void removeFooterStatusChangeListener(
-      SmallFooterStatusChangeListener listener) {
+  void removeFooterStatusChangeListener(SmallFooterStatusChangeListener listener) {
     lock.synchronized(() {
       footerStatusListeners.add(listener);
     });
   }
 
-  Future _notifyFooterStatusChangeListener(
-      SmallRefreshFooterChangeEvents value) {
+  Future _notifyFooterStatusChangeListener(SmallRefreshFooterChangeEvents value) {
     return lock.synchronized(() {
       for (int s = 0; s < footerStatusListeners.length; s++) {
         SmallFooterStatusChangeListener listener = footerStatusListeners[s];
@@ -1211,23 +1267,23 @@ class SmallRefreshController {
     });
   }
 
-  ///loadListeners
-  void addLoadChangeListener(SmallLoadListener listener) {
+  ///footer hide status listeners
+  void addFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
     lock.synchronized(() {
-      loadListeners.add(listener);
+      footerHideStatusListener.add(listener);
     });
   }
 
-  void removeLoadChangeListener(SmallLoadListener listener) {
+  void removeFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
     lock.synchronized(() {
-      loadListeners.add(listener);
+      footerHideStatusListener.add(listener);
     });
   }
 
-  Future _notifyLoadChangeListener(SmallLoadEvents value) {
+  Future _notifyFooterHideStatusChangeListener(SmallRefreshFooterHideEvents value) {
     return lock.synchronized(() {
-      for (int s = 0; s < loadListeners.length; s++) {
-        SmallLoadListener listener = loadListeners[s];
+      for (int s = 0; s < footerHideStatusListener.length; s++) {
+        SmallFooterHideStatusChangeListener listener = footerHideStatusListener[s];
         listener(value);
       }
     });

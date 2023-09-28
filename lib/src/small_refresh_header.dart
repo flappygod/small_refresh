@@ -5,63 +5,48 @@ import 'small_refresh.dart';
 
 ///small refresh header
 class DefaultSmallRefreshHeader extends SmallRefreshHeaderWidget {
-  //height
-  final double height;
-
-  //controller
-  final SmallRefreshController controller;
-
+  ///header
   const DefaultSmallRefreshHeader({
     Key? key,
-    required this.controller,
-    this.height = 75,
-  }) : super(key: key);
+    required SmallRefreshController controller,
+    double height = 75,
+  }) : super(key: key, controller: controller, height: height);
 
   @override
   State<StatefulWidget> createState() {
     return DefaultHeaderRefreshFooterState();
   }
-
-  @override
-  double getHeight() {
-    return height;
-  }
-
-  @override
-  SmallRefreshController getController() {
-    return controller;
-  }
 }
 
 ///small refresh header state
-class DefaultHeaderRefreshFooterState
-    extends SmallRefreshHeaderState<DefaultSmallRefreshHeader> {
+class DefaultHeaderRefreshFooterState extends SmallRefreshHeaderState<DefaultSmallRefreshHeader> {
   @override
-  Widget getNormalView() {
-    return const SizedBox();
+  Widget buildStateView(RefreshStatus status) {
+    switch (status) {
+      case RefreshStatus.refreshStatusPullAction:
+      case RefreshStatus.refreshStatusPullOver:
+      case RefreshStatus.refreshStatusPullLock:
+        return Text(
+          "${(widget.controller.progress * 100).toInt()}%",
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        );
+      case RefreshStatus.refreshStatusEndAnimation:
+      case RefreshStatus.refreshStatusRefreshing:
+        return const SpinKitSpinningLines(
+          itemCount: 1,
+          lineWidth: 2,
+          duration: Duration(milliseconds: 500),
+          color: Colors.grey,
+          size: 30.0,
+        );
+      case RefreshStatus.refreshStatusEnded:
+        return Text(
+          "Pull to load",
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        );
+    }
   }
 
   @override
-  Widget getProgressView(double progress) {
-    return Text(
-      "${(progress * 100).toInt()}%",
-      style: TextStyle(fontSize: 12, color: Colors.grey),
-    );
-  }
-
-  @override
-  Widget getRefreshingView() {
-    return const SpinKitSpinningLines(
-      itemCount: 1,
-      lineWidth: 2,
-      duration: Duration(milliseconds: 500),
-      color: Colors.grey,
-      size: 30.0,
-    );
-  }
-
-  @override
-  void onRefreshNotify() {
-    ///just do nothing
-  }
+  void onStateNotify(SmallRefreshHeaderChangeEvents events) {}
 }

@@ -5,82 +5,52 @@ import 'small_refresh.dart';
 
 ///small refresh footer
 class DefaultSmallRefreshFooter extends SmallRefreshFooterWidget {
-  //height
-  final double height;
-
-  //the init state show or not;
-  final bool initHide;
-
-  //controller
-  final SmallRefreshController controller;
-
   const DefaultSmallRefreshFooter({
     Key? key,
-    required this.controller,
-    this.initHide = false,
-    this.height = 60,
-  }) : super(key: key);
+    required SmallRefreshController controller,
+    double height = 60,
+  }) : super(key: key, controller: controller, height: height);
 
   @override
   State<StatefulWidget> createState() {
     return DefaultSmallRefreshFooterState();
   }
-
-  @override
-  double getHeight() {
-    return height;
-  }
-
-  @override
-  SmallRefreshController getController() {
-    return controller;
-  }
 }
 
 ///footer state
-class DefaultSmallRefreshFooterState
-    extends SmallRefreshFooterState<DefaultSmallRefreshFooter> {
-  ///get hide view
+class DefaultSmallRefreshFooterState extends SmallRefreshFooterState<DefaultSmallRefreshFooter> {
+  ///build state view
   @override
-  Widget getHideView() {
-    return const SizedBox();
+  Widget buildStateView(LoadStatus status) {
+    ///status
+    switch (status) {
+      case LoadStatus.loadStatusLoading:
+        return const SpinKitSpinningLines(
+          itemCount: 1,
+          lineWidth: 2,
+          duration: Duration(milliseconds: 500),
+          color: Colors.grey,
+          size: 30.0,
+        );
+      case LoadStatus.loadStatusEnd:
+        return Text(
+          "Pull to load",
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        );
+      case LoadStatus.loadStatusStopped:
+        return Text(
+          "No more data",
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        );
+    }
   }
 
   @override
-  Widget getLoadingView() {
-    return const SpinKitSpinningLines(
-      itemCount: 1,
-      lineWidth: 2,
-      duration: Duration(milliseconds: 500),
-      color: Colors.grey,
-      size: 30.0,
-    );
-  }
-
-  @override
-  Widget getNoMoreView() {
-    return Text(
-      "No more data",
-      style: TextStyle(
-        fontSize: 12,
-        color: Colors.grey,
-      ),
-    );
-  }
-
-  @override
-  Widget getNorMalView() {
-    return Text(
-      "Pull to load",
-      style: TextStyle(
-        fontSize: 12,
-        color: Colors.grey,
-      ),
-    );
-  }
-
-  @override
-  void onRefreshNotify(bool isHide, bool isLoading, bool isNoMore) {
-    ///do nothing
-  }
+  void onStateNotify(SmallRefreshFooterChangeEvents events) {}
 }
