@@ -291,7 +291,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         setState(() {});
       }
     };
-    widget.controller.addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
+    widget.controller._addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
   }
 
   ///if first refresh animation is set and header is not null,start refresh
@@ -316,10 +316,10 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller._removeActionLoadListener(_loadActionListener);
       oldWidget.controller._removeActionRefreshListener(_refreshActionListener);
-      oldWidget.controller.removeFooterHideStatusChangeListener(_footerHideStatusChangeListener);
+      oldWidget.controller._removeFooterHideStatusChangeListener(_footerHideStatusChangeListener);
       widget.controller._addActionLoadListener(_loadActionListener);
       widget.controller._addActionRefreshListener(_refreshActionListener);
-      widget.controller.addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
+      widget.controller._addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -328,7 +328,7 @@ class SmallRefreshState extends State<SmallRefresh> {
   void dispose() {
     widget.controller._removeActionLoadListener(_loadActionListener);
     widget.controller._removeActionRefreshListener(_refreshActionListener);
-    widget.controller.addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
+    widget.controller._removeFooterHideStatusChangeListener(_footerHideStatusChangeListener);
     widget.controller.dispose();
     super.dispose();
   }
@@ -1268,13 +1268,13 @@ class SmallRefreshController {
   }
 
   ///footer hide status listeners
-  void addFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
+  void _addFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
     lock.synchronized(() {
       footerHideStatusListener.add(listener);
     });
   }
 
-  void removeFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
+  void _removeFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
     lock.synchronized(() {
       footerHideStatusListener.add(listener);
     });
