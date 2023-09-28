@@ -1,3 +1,3 @@
-## 1.0.4
+## 1.0.5
 
-- all status more accurate.
+- add init controller status.

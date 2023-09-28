@@ -1040,6 +1040,8 @@ class SmallRefreshController {
   //lock
   Lock lock = Lock();
 
+
+
   ///refresh status
   RefreshStatus _refreshStatus = RefreshStatus.refreshStatusEnded;
 
@@ -1068,6 +1070,9 @@ class SmallRefreshController {
   SmallRefreshController({
     ScrollController? scrollController,
     SmallStickPageViewController? stickController,
+    FooterHideStatus? footerHideStatus,
+    LoadStatus? loadStatus,
+    RefreshStatus? refreshStatus,
   }) {
     //scroll controller create self
     _scrollControllerCreateSelfTag = scrollController == null;
@@ -1077,6 +1082,9 @@ class SmallRefreshController {
     _stickController = stickController;
     //register if need
     _stickController?.registerChildController(this);
+    _footerHideStatus = footerHideStatus ?? FooterHideStatus.footerShow;
+    _refreshStatus = refreshStatus ?? RefreshStatus.refreshStatusEnded;
+    _loadStatus = loadStatus ?? LoadStatus.loadStatusEnd;
   }
 
   ///set status
