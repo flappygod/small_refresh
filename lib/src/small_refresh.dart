@@ -1048,7 +1048,7 @@ class SmallRefreshController {
   SmallRefreshController({
     ScrollController? scrollController,
     SmallStickPageViewController? stickController,
-    HideShowStatus? footerHideStatus,
+    HideShowStatus footerHideStatus = HideShowStatus.hide,
   }) {
     //scroll controller create self
     _scrollControllerCreateSelfTag = scrollController == null;
@@ -1059,7 +1059,7 @@ class SmallRefreshController {
     //register if need
     _stickController?.registerChildController(this);
     //create footer controller
-    _footerController = HideShowController(footerHideStatus ?? HideShowStatus.show);
+    _footerController = HideShowController(footerHideStatus);
   }
 
   ///set status

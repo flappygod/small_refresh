@@ -1,3 +1,3 @@
-## 1.0.6
+## 1.0.7
 
-- change footer hide show function,fix a bug in remove listeners.
+- set footer view default to hide.

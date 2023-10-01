@@ -1,6 +1,6 @@
 name: small_refresh
 description: This is a refresh view based on CustomScrollView with Smooth animations,and you can customize your header view or footer view simply.
-version: 1.0.6
+version: 1.0.7
 repository: https://github.com/flappygod/small_refresh.git
 
 environment:
