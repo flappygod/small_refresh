@@ -201,3 +201,107 @@ class _ObserveWidgetState extends State<ObserveWidget> {
     );
   }
 }
+
+///hid show listener
+class HideShowController {
+  HideShowController(this._hideShowStatus);
+
+  ///hide show listeners
+  final List<VoidCallback> _hideShowListeners = [];
+
+  ///hide show status
+  HideShowStatus _hideShowStatus = HideShowStatus.show;
+
+  ///add hide show change listener
+  void _addHideShowChangeListener(VoidCallback listener) {
+    _hideShowListeners.add(listener);
+  }
+
+  ///remove hide show change listener
+  void _removeHideShowChangeListener(VoidCallback listener) {
+    _hideShowListeners.add(listener);
+  }
+
+  ///notify
+  void _notify() {
+    for (int s = 0; s < _hideShowListeners.length; s++) {
+      VoidCallback listener = _hideShowListeners[s];
+      listener();
+    }
+  }
+
+  ///show
+  void show() {
+    _hideShowStatus = HideShowStatus.show;
+    _notify();
+  }
+
+  ///hide
+  void hide() {
+    _hideShowStatus = HideShowStatus.hide;
+    _notify();
+  }
+}
+
+///footer status
+enum HideShowStatus {
+  hide,
+  show,
+}
+
+///hide show widget
+class HideShowWidget extends StatefulWidget {
+  ///child
+  final Widget child;
+
+  ///controller
+  final HideShowController controller;
+
+  HideShowWidget({
+    Key? key,
+    required this.controller,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _HideShowWidgetState();
+  }
+}
+
+///show widget state
+class _HideShowWidgetState extends State<HideShowWidget> {
+  late VoidCallback _listener;
+
+  @override
+  void initState() {
+    _listener = () {
+      setState(() {});
+    };
+    widget.controller._addHideShowChangeListener(_listener);
+    super.initState();
+  }
+
+  @override
+  void didUpdateWidget(oldWidget) {
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller._removeHideShowChangeListener(_listener);
+      widget.controller._addHideShowChangeListener(_listener);
+    }
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  void dispose() {
+    widget.controller._removeHideShowChangeListener(_listener);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Visibility(
+      visible: widget.controller._hideShowStatus == HideShowStatus.show,
+      child: widget.child,
+    );
+  }
+}

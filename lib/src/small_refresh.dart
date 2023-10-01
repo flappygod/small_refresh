@@ -1,3 +1,4 @@
+import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -181,9 +182,6 @@ class SmallRefreshState extends State<SmallRefresh> {
   //load action listener
   late SmallLoadActionListener _loadActionListener;
 
-  //footer status change listener
-  late SmallFooterHideStatusChangeListener _footerHideStatusChangeListener;
-
   //refresh end
   RefreshStatus _refreshStatus = RefreshStatus.refreshStatusEnded;
 
@@ -278,14 +276,6 @@ class SmallRefreshState extends State<SmallRefresh> {
       }
     };
     widget.controller._addActionLoadListener(_loadActionListener);
-
-    ///footer status change listener
-    _footerHideStatusChangeListener = (value) {
-      if (mounted) {
-        setState(() {});
-      }
-    };
-    widget.controller._addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
   }
 
   ///if first refresh animation is set and header is not null,start refresh
@@ -309,10 +299,8 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller._removeActionLoadListener(_loadActionListener);
       oldWidget.controller._removeActionRefreshListener(_refreshActionListener);
-      oldWidget.controller._removeFooterHideStatusChangeListener(_footerHideStatusChangeListener);
       widget.controller._addActionLoadListener(_loadActionListener);
       widget.controller._addActionRefreshListener(_refreshActionListener);
-      widget.controller._addFooterHideStatusChangeListener(_footerHideStatusChangeListener);
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -321,7 +309,6 @@ class SmallRefreshState extends State<SmallRefresh> {
   void dispose() {
     widget.controller._removeActionLoadListener(_loadActionListener);
     widget.controller._removeActionRefreshListener(_refreshActionListener);
-    widget.controller._removeFooterHideStatusChangeListener(_footerHideStatusChangeListener);
     widget.controller.dispose();
     super.dispose();
   }
@@ -440,9 +427,12 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //build footer
   Widget? _buildBottomFooter() {
-    if (widget.footer != null && widget.controller.footerHideStatus == FooterHideStatus.footerShow) {
+    if (widget.footer != null) {
       Widget memFooter = SliverToBoxAdapter(
-        child: widget.footer,
+        child: HideShowWidget(
+          controller: widget.controller._footerController,
+          child: widget.footer!,
+        ),
       );
       return memFooter;
     } else {
@@ -988,6 +978,9 @@ class SmallRefreshController {
   //resize controller
   final SmallResizeWidgetController _stickFlingBtmResizeController = SmallResizeWidgetController(0);
 
+  //footer controller
+  late HideShowController _footerController;
+
   final GlobalKey _stickTopKey = GlobalKey();
   final GlobalKey _stickBtmKey = GlobalKey();
 
@@ -1039,9 +1032,6 @@ class SmallRefreshController {
   ///load status
   LoadStatus _loadStatus = LoadStatus.loadStatusEnd;
 
-  ///hide status
-  FooterHideStatus _footerHideStatus = FooterHideStatus.footerShow;
-
   ///action listeners
   List<SmallRefreshActionListener> actionRefreshListeners = [];
 
@@ -1054,14 +1044,11 @@ class SmallRefreshController {
   ///footer status listener
   List<SmallFooterStatusChangeListener> footerStatusListeners = [];
 
-  ///footer hide status listener
-  List<SmallFooterHideStatusChangeListener> footerHideStatusListener = [];
-
   //start
   SmallRefreshController({
     ScrollController? scrollController,
     SmallStickPageViewController? stickController,
-    FooterHideStatus? footerHideStatus,
+    HideShowStatus? footerHideStatus,
   }) {
     //scroll controller create self
     _scrollControllerCreateSelfTag = scrollController == null;
@@ -1071,7 +1058,8 @@ class SmallRefreshController {
     _stickController = stickController;
     //register if need
     _stickController?.registerChildController(this);
-    _footerHideStatus = footerHideStatus ?? FooterHideStatus.footerShow;
+    //create footer controller
+    _footerController = HideShowController(footerHideStatus ?? HideShowStatus.show);
   }
 
   ///set status
@@ -1130,33 +1118,12 @@ class SmallRefreshController {
     return _loadStatus;
   }
 
-  ///set footer hide status
-  set footerHideStatus(FooterHideStatus status) {
-    if (_footerHideStatus != status) {
-      _footerHideStatus = status;
-      if (_footerHideStatus == FooterHideStatus.footerHide) {
-        _notifyFooterHideStatusChangeListener(
-          SmallRefreshFooterHideEvents.footerEventHide,
-        );
-      }
-      if (_footerHideStatus == FooterHideStatus.footerShow) {
-        _notifyFooterHideStatusChangeListener(
-          SmallRefreshFooterHideEvents.footerEventShow,
-        );
-      }
-    }
-  }
-
-  FooterHideStatus get footerHideStatus {
-    return _footerHideStatus;
-  }
-
   void showFooter() {
-    footerHideStatus = FooterHideStatus.footerShow;
+    _footerController.show();
   }
 
   void hideFooter() {
-    footerHideStatus = FooterHideStatus.footerHide;
+    _footerController.hide();
   }
 
   //can refresh
@@ -1279,28 +1246,6 @@ class SmallRefreshController {
     return lock.synchronized(() {
       for (int s = 0; s < footerStatusListeners.length; s++) {
         SmallFooterStatusChangeListener listener = footerStatusListeners[s];
-        listener(value);
-      }
-    });
-  }
-
-  ///footer hide status listeners
-  void _addFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
-    lock.synchronized(() {
-      footerHideStatusListener.add(listener);
-    });
-  }
-
-  void _removeFooterHideStatusChangeListener(SmallFooterHideStatusChangeListener listener) {
-    lock.synchronized(() {
-      footerHideStatusListener.add(listener);
-    });
-  }
-
-  Future _notifyFooterHideStatusChangeListener(SmallRefreshFooterHideEvents value) {
-    return lock.synchronized(() {
-      for (int s = 0; s < footerHideStatusListener.length; s++) {
-        SmallFooterHideStatusChangeListener listener = footerHideStatusListener[s];
         listener(value);
       }
     });

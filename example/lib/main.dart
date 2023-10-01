@@ -98,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       slivers: _buildSliver(),
       onRefresh: () async {
-        _refreshController.footerHideStatus = FooterHideStatus.footerShow;
+        _refreshController.showFooter();
         await Future.delayed(const Duration(milliseconds: 2000));
         dataList.clear();
         _dataCount = 0;
@@ -120,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
         } else {
           ///no more data ,we stop load
           _refreshController.stopLoad();
-          _refreshController.footerHideStatus = FooterHideStatus.footerHide;
+          _refreshController.hideFooter();
         }
         if (mounted) {
           setState(() {});
