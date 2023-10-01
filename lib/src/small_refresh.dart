@@ -1172,7 +1172,7 @@ class SmallRefreshController {
 
   void _removeActionRefreshListener(SmallRefreshActionListener listener) {
     lock.synchronized(() {
-      actionRefreshListeners.add(listener);
+      actionRefreshListeners.remove(listener);
     });
   }
 
@@ -1194,7 +1194,7 @@ class SmallRefreshController {
 
   void _removeActionLoadListener(SmallLoadActionListener listener) {
     lock.synchronized(() {
-      actionLoadListeners.add(listener);
+      actionLoadListeners.remove(listener);
     });
   }
 
@@ -1216,7 +1216,7 @@ class SmallRefreshController {
 
   void removeHeaderStatusChangeListener(SmallHeaderStatusChangeListener listener) {
     lock.synchronized(() {
-      headerStatusListeners.add(listener);
+      headerStatusListeners.remove(listener);
     });
   }
 
@@ -1238,7 +1238,7 @@ class SmallRefreshController {
 
   void removeFooterStatusChangeListener(SmallFooterStatusChangeListener listener) {
     lock.synchronized(() {
-      footerStatusListeners.add(listener);
+      footerStatusListeners.remove(listener);
     });
   }
 

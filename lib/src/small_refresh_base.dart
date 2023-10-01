@@ -219,7 +219,7 @@ class HideShowController {
 
   ///remove hide show change listener
   void _removeHideShowChangeListener(VoidCallback listener) {
-    _hideShowListeners.add(listener);
+    _hideShowListeners.remove(listener);
   }
 
   ///notify
