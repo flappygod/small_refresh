@@ -46,27 +46,33 @@ class SmallRefreshBaseNotifier extends Listenable {
 //refresh head state
 abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget> extends State<T> {
   //listener
-  late SmallHeaderStatusChangeListener _listener;
+  late SmallHeaderStatusChangeListener _headerStatusListener;
 
   @override
   void initState() {
-    _listener = (value) {
+    _headerStatusListener = (value) {
       onStateNotify(value);
       if (mounted) {
         setState(() {});
       }
     };
-    widget.controller.addHeaderStatusChangeListener(_listener);
+    widget.controller.addHeaderStatusChangeListener(_headerStatusListener);
     super.initState();
   }
 
   @override
   void didUpdateWidget(oldWidget) {
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeHeaderStatusChangeListener(_listener);
-      widget.controller.addHeaderStatusChangeListener(_listener);
+      oldWidget.controller.removeHeaderStatusChangeListener(_headerStatusListener);
+      widget.controller.addHeaderStatusChangeListener(_headerStatusListener);
     }
     super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeHeaderStatusChangeListener(_headerStatusListener);
+    super.dispose();
   }
 
   @override
@@ -76,12 +82,6 @@ abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget> exten
       alignment: Alignment.center,
       child: buildStateView(widget.controller.refreshStatus),
     );
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeHeaderStatusChangeListener(_listener);
-    super.dispose();
   }
 
   ///build state view
@@ -145,4 +145,59 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget> exten
   void onStateNotify(
     SmallRefreshFooterChangeEvents events,
   );
+}
+
+typedef ObserveHeightListener = Function(Size height);
+
+///Observe child widget size, callback will trigger only the size has changed
+class ObserveWidget extends StatefulWidget {
+  //child
+  final Widget child;
+
+  //listener
+  final ObserveHeightListener listener;
+
+  const ObserveWidget({
+    Key? key,
+    required this.listener,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _ObserveWidgetState();
+  }
+}
+
+///Observe child widget size, callback will trigger only the size has changed
+class _ObserveWidgetState extends State<ObserveWidget> {
+  //globalKey
+  final GlobalKey _observeKey = GlobalKey();
+
+  //size
+  Size? _observeSize;
+
+  ///trigger only once since build
+  void _setListener() {
+    ///check Size
+    WidgetsBinding.instance.addPostFrameCallback((mag) {
+      Size? size = _observeKey.currentContext?.size;
+      if (size == null) {
+        return;
+      }
+      if (size.width != _observeSize?.width || size.height != _observeSize?.height) {
+        _observeSize = size;
+        widget.listener(size);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _setListener();
+    return SizedBox(
+      key: _observeKey,
+      child: widget.child,
+    );
+  }
 }

@@ -202,12 +202,6 @@ class SmallRefreshState extends State<SmallRefresh> {
     widget.controller.loadStatus = loadStatus;
   }
 
-  ///init status
-  void _initStatus() {
-    _refreshStatus = widget.controller._refreshStatus;
-    _loadStatus = widget.controller._loadStatus;
-  }
-
   ///init controller
   void _initController() {
     ///create small size widget
@@ -305,7 +299,6 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   @override
   void initState() {
-    _initStatus();
     _initController();
     _initFirstTime();
     super.initState();
@@ -1040,8 +1033,6 @@ class SmallRefreshController {
   //lock
   Lock lock = Lock();
 
-
-
   ///refresh status
   RefreshStatus _refreshStatus = RefreshStatus.refreshStatusEnded;
 
@@ -1071,8 +1062,6 @@ class SmallRefreshController {
     ScrollController? scrollController,
     SmallStickPageViewController? stickController,
     FooterHideStatus? footerHideStatus,
-    LoadStatus? loadStatus,
-    RefreshStatus? refreshStatus,
   }) {
     //scroll controller create self
     _scrollControllerCreateSelfTag = scrollController == null;
@@ -1083,8 +1072,6 @@ class SmallRefreshController {
     //register if need
     _stickController?.registerChildController(this);
     _footerHideStatus = footerHideStatus ?? FooterHideStatus.footerShow;
-    _refreshStatus = refreshStatus ?? RefreshStatus.refreshStatusEnded;
-    _loadStatus = loadStatus ?? LoadStatus.loadStatusEnd;
   }
 
   ///set status
@@ -1092,19 +1079,29 @@ class SmallRefreshController {
     if (_refreshStatus != status) {
       _refreshStatus = status;
       if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
-        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateStart);
+        _notifyHeaderStatusChangeListener(
+          SmallRefreshHeaderChangeEvents.refreshStateStart,
+        );
       }
       if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
-        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStatePullOver);
+        _notifyHeaderStatusChangeListener(
+          SmallRefreshHeaderChangeEvents.refreshStatePullOver,
+        );
       }
       if (_refreshStatus == RefreshStatus.refreshStatusRefreshing) {
-        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateRefreshing);
+        _notifyHeaderStatusChangeListener(
+          SmallRefreshHeaderChangeEvents.refreshStateRefreshing,
+        );
       }
       if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
-        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateEndAnim);
+        _notifyHeaderStatusChangeListener(
+          SmallRefreshHeaderChangeEvents.refreshStateEndAnim,
+        );
       }
       if (_refreshStatus == RefreshStatus.refreshStatusEnded) {
-        _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents.refreshStateEnded);
+        _notifyHeaderStatusChangeListener(
+          SmallRefreshHeaderChangeEvents.refreshStateEnded,
+        );
       }
     }
   }
@@ -1138,16 +1135,28 @@ class SmallRefreshController {
     if (_footerHideStatus != status) {
       _footerHideStatus = status;
       if (_footerHideStatus == FooterHideStatus.footerHide) {
-        _notifyFooterHideStatusChangeListener(SmallRefreshFooterHideEvents.footerEventHide);
+        _notifyFooterHideStatusChangeListener(
+          SmallRefreshFooterHideEvents.footerEventHide,
+        );
       }
       if (_footerHideStatus == FooterHideStatus.footerShow) {
-        _notifyFooterHideStatusChangeListener(SmallRefreshFooterHideEvents.footerEventShow);
+        _notifyFooterHideStatusChangeListener(
+          SmallRefreshFooterHideEvents.footerEventShow,
+        );
       }
     }
   }
 
   FooterHideStatus get footerHideStatus {
     return _footerHideStatus;
+  }
+
+  void showFooter() {
+    footerHideStatus = FooterHideStatus.footerShow;
+  }
+
+  void hideFooter() {
+    footerHideStatus = FooterHideStatus.footerHide;
   }
 
   //can refresh

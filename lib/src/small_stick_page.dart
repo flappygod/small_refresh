@@ -1,6 +1,6 @@
+import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/material.dart';
-import 'observe_widget.dart';
 import 'small_refresh.dart';
 
 //notifier
@@ -81,12 +81,9 @@ class SmallStickPageViewController extends ChangeNotifier {
 
   //stop current scroll
   void _stopCurrentScroll() {
-    if ((_currentScrollController?.scrollController.positions.isNotEmpty ??
-            false) &&
-        _stopFlag == false) {
+    if ((_currentScrollController?.scrollController.positions.isNotEmpty ?? false) && _stopFlag == false) {
       _stopFlag = true;
-      _currentScrollController?.scrollController
-          .jumpTo(_currentScrollController?.scrollController.offset ?? 0);
+      _currentScrollController?.scrollController.jumpTo(_currentScrollController?.scrollController.offset ?? 0);
     }
   }
 
@@ -254,8 +251,7 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
                 ),
                 SizedBox(
                   key: _contentKey,
-                  height: widget.controller.contentHeight -
-                      widget.controller.stickHeight,
+                  height: widget.controller.contentHeight - widget.controller.stickHeight,
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: widget.body,
