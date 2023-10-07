@@ -1,3 +1,3 @@
-## 1.0.7
+## 1.0.8
 
-- set footer view default to hide.
+- bug fixes.

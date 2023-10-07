@@ -748,6 +748,7 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //pull end
   Future<void> _changeToRefreshing() async {
+    await Future.delayed(Duration(milliseconds: 5));
     //if pulled out
     if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
       await _refreshLock.synchronized(() async {
@@ -827,6 +828,7 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //change to end anim
   Future<void> _changeToEnd() async {
+    await Future.delayed(Duration(milliseconds: 5));
     if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
       await _refreshLock.synchronized(() {
         if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
