@@ -309,7 +309,6 @@ class SmallRefreshState extends State<SmallRefresh> {
   void dispose() {
     widget.controller._removeActionLoadListener(_loadActionListener);
     widget.controller._removeActionRefreshListener(_refreshActionListener);
-    widget.controller.dispose();
     super.dispose();
   }
 
