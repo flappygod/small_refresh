@@ -18,7 +18,8 @@ class DefaultSmallRefreshFooter extends SmallRefreshFooterWidget {
 }
 
 ///footer state
-class DefaultSmallRefreshFooterState extends SmallRefreshFooterState<DefaultSmallRefreshFooter> {
+class DefaultSmallRefreshFooterState
+    extends SmallRefreshFooterState<DefaultSmallRefreshFooter> {
   ///build state view
   @override
   Widget buildStateView(LoadStatus status) {

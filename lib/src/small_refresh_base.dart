@@ -44,7 +44,8 @@ class SmallRefreshBaseNotifier extends Listenable {
 }
 
 //refresh head state
-abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget> extends State<T> {
+abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget>
+    extends State<T> {
   //listener
   late SmallHeaderStatusChangeListener _headerStatusListener;
 
@@ -63,7 +64,8 @@ abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget> exten
   @override
   void didUpdateWidget(oldWidget) {
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeHeaderStatusChangeListener(_headerStatusListener);
+      oldWidget.controller
+          .removeHeaderStatusChangeListener(_headerStatusListener);
       widget.controller.addHeaderStatusChangeListener(_headerStatusListener);
     }
     super.didUpdateWidget(oldWidget);
@@ -94,7 +96,8 @@ abstract class SmallRefreshHeaderState<T extends SmallRefreshHeaderWidget> exten
 }
 
 ///small refresh footer state
-abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget> extends State<T> {
+abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget>
+    extends State<T> {
   ///status change listener
   late SmallFooterStatusChangeListener _footerStatusChangeListener;
 
@@ -108,22 +111,26 @@ abstract class SmallRefreshFooterState<T extends SmallRefreshFooterWidget> exten
       }
     };
 
-    widget.controller.addFooterStatusChangeListener(_footerStatusChangeListener);
+    widget.controller
+        .addFooterStatusChangeListener(_footerStatusChangeListener);
     super.initState();
   }
 
   @override
   void didUpdateWidget(oldWidget) {
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeFooterStatusChangeListener(_footerStatusChangeListener);
-      widget.controller.addFooterStatusChangeListener(_footerStatusChangeListener);
+      oldWidget.controller
+          .removeFooterStatusChangeListener(_footerStatusChangeListener);
+      widget.controller
+          .addFooterStatusChangeListener(_footerStatusChangeListener);
     }
     super.didUpdateWidget(oldWidget);
   }
 
   @override
   void dispose() {
-    widget.controller.removeFooterStatusChangeListener(_footerStatusChangeListener);
+    widget.controller
+        .removeFooterStatusChangeListener(_footerStatusChangeListener);
     super.dispose();
   }
 
@@ -185,7 +192,8 @@ class _ObserveWidgetState extends State<ObserveWidget> {
       if (size == null) {
         return;
       }
-      if (size.width != _observeSize?.width || size.height != _observeSize?.height) {
+      if (size.width != _observeSize?.width ||
+          size.height != _observeSize?.height) {
         _observeSize = size;
         widget.listener(size);
       }

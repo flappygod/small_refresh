@@ -19,7 +19,8 @@ class DefaultSmallRefreshHeader extends SmallRefreshHeaderWidget {
 }
 
 ///small refresh header state
-class DefaultHeaderRefreshFooterState extends SmallRefreshHeaderState<DefaultSmallRefreshHeader> {
+class DefaultHeaderRefreshFooterState
+    extends SmallRefreshHeaderState<DefaultSmallRefreshHeader> {
   @override
   Widget buildStateView(RefreshStatus status) {
     switch (status) {

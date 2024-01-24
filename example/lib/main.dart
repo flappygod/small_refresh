@@ -59,7 +59,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final SmallRefreshController _refreshController = SmallRefreshController();
 
   int _dataCount = 0;
-  List dataList = List.from({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
+  List dataList =
+      List.from({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"});
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +140,9 @@ class _MyHomePageState extends State<MyHomePage> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: Colors.grey, width: 1 / MediaQuery.devicePixelRatioOf(context)),
+              bottom: BorderSide(
+                  color: Colors.grey,
+                  width: 1 / MediaQuery.devicePixelRatioOf(context)),
             ),
           ),
           child: Text(

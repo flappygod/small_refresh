@@ -1,3 +1,3 @@
-## 1.0.9
+## 1.0.10
 
-- bug fixes.
+- format and change read me
