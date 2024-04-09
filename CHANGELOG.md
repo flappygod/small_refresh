@@ -1,3 +1,3 @@
-## 1.0.10
+## 1.0.11
 
-- format and change read me
+- add loadNextOffset for load next items offset

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/cupertino.dart';
@@ -116,6 +118,9 @@ class SmallRefresh extends StatefulWidget {
   //bottom padding
   final double bottomPadding;
 
+  //load next offset
+  final double loadNextOffset;
+
   //on refresh
   final SmallCallback? onRefresh;
 
@@ -150,6 +155,7 @@ class SmallRefresh extends StatefulWidget {
     this.onLoad,
     this.topPadding = 0,
     this.bottomPadding = 0,
+    this.loadNextOffset = 10,
     this.slivers = const [],
     this.physics,
     this.cacheExtent,
@@ -926,7 +932,8 @@ class SmallRefreshState extends State<SmallRefresh> {
       return;
     }
     if (notification is ScrollEndNotification &&
-        notification.metrics.extentAfter <= widget.footer!.height &&
+        notification.metrics.extentAfter <=
+            max(widget.footer!.height + widget.loadNextOffset, 0) &&
         _refreshStatus == RefreshStatus.refreshStatusEnded) {
       _changeToLoading(false);
     }
