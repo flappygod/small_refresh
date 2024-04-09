@@ -1,3 +1,3 @@
-## 1.0.11
+## 1.0.12
 
-- add loadNextOffset for load next items offset
+- add loadNextOnScrolling for load next items 

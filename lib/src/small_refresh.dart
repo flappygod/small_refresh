@@ -121,6 +121,9 @@ class SmallRefresh extends StatefulWidget {
   //load next offset
   final double loadNextOffset;
 
+  //load next scrolling
+  final bool loadNextOnScrolling;
+
   //on refresh
   final SmallCallback? onRefresh;
 
@@ -156,6 +159,7 @@ class SmallRefresh extends StatefulWidget {
     this.topPadding = 0,
     this.bottomPadding = 0,
     this.loadNextOffset = 10,
+    this.loadNextOnScrolling = false,
     this.slivers = const [],
     this.physics,
     this.cacheExtent,
@@ -931,7 +935,9 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.footer == null || widget.onLoad == null) {
       return;
     }
-    if (notification is ScrollEndNotification &&
+    if ((notification is ScrollEndNotification ||
+            ((notification is ScrollUpdateNotification) &&
+                widget.loadNextOnScrolling)) &&
         notification.metrics.extentAfter <=
             max(widget.footer!.height + widget.loadNextOffset, 0) &&
         _refreshStatus == RefreshStatus.refreshStatusEnded) {
