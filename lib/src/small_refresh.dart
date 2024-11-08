@@ -533,7 +533,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       }
 
       ///prevent rolling with parent
-      if (widget.controller.isPreventRollingWithParent) {
+      if (widget.controller._preventRollingWithParent) {
         return;
       }
 
@@ -1059,19 +1059,30 @@ class SmallRefreshController {
   //prevent rolling with child
   bool _preventRollingWithParent = false;
 
-  //rolling with child
-  bool get isPreventRollingWithParent {
-    return _preventRollingWithParent;
-  }
-
-  //prevent
-  void preventRollingWithParent() {
-    _preventRollingWithParent = true;
-  }
-
-  //restore
-  void restoreRollingWithParent() {
-    _preventRollingWithParent = false;
+  //animate to top
+  Future<void> animateToTop({
+    bool fatherTogether = true,
+    required Duration duration,
+    required Curve curve,
+  }) async {
+    Future futureOne = _scrollController.animateTo(
+      0,
+      duration: duration,
+      curve: curve,
+    );
+    if (fatherTogether && _stickController != null) {
+      _preventRollingWithParent = true;
+      _nestedFatherOut = false;
+      Future futureTwo = _stickController!.scrollController.animateTo(
+        0,
+        duration: duration,
+        curve: curve,
+      );
+      await Future.wait([futureOne, futureTwo]);
+      _preventRollingWithParent = false;
+    } else {
+      await futureOne;
+    }
   }
 
   //scroll controller
