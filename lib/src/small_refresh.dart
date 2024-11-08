@@ -1065,24 +1065,31 @@ class SmallRefreshController {
     required Duration duration,
     required Curve curve,
   }) async {
+    //set prevent true
+    _preventRollingWithParent = true;
+
+    //father out remove top fling
+    _nestedFatherOut = true;
+    //future one
     Future futureOne = _scrollController.animateTo(
       0,
       duration: duration,
       curve: curve,
     );
-    if (fatherTogether && _stickController != null) {
-      _preventRollingWithParent = true;
-      _nestedFatherOut = true;
-      Future futureTwo = _stickController!.scrollController.animateTo(
-        0,
-        duration: duration,
-        curve: curve,
-      );
-      await Future.wait([futureOne, futureTwo]);
-      _preventRollingWithParent = false;
-    } else {
-      await futureOne;
-    }
+
+    //future two
+    Future futureTwo = fatherTogether
+        ? (_stickController?.scrollController.animateTo(
+              0,
+              duration: duration,
+              curve: curve,
+            ) ??
+            Future.delayed(duration))
+        : Future.delayed(duration);
+    await Future.wait([futureOne, futureTwo]);
+
+    //set prevent false
+    _preventRollingWithParent = false;
   }
 
   //scroll controller
