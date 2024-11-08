@@ -1072,7 +1072,7 @@ class SmallRefreshController {
     );
     if (fatherTogether && _stickController != null) {
       _preventRollingWithParent = true;
-      _nestedFatherOut = false;
+      _nestedFatherOut = true;
       Future futureTwo = _stickController!.scrollController.animateTo(
         0,
         duration: duration,
