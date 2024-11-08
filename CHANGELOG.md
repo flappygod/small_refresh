@@ -1,3 +1,3 @@
-## 1.0.12
+## 1.0.13
 
-- add loadNextOnScrolling for load next items 
+- add preventRollingWithParent for prevent rolling together sometime.

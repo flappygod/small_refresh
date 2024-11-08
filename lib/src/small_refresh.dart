@@ -532,6 +532,11 @@ class SmallRefreshState extends State<SmallRefresh> {
         return;
       }
 
+      ///prevent rolling with parent
+      if (widget.controller.isPreventRollingWithParent) {
+        return;
+      }
+
       ///when small refresh is  refresh animating ,do nothing
       if (widget.controller.isAnimating) {
         return;
@@ -1050,6 +1055,24 @@ class SmallRefreshController {
 
   //scroll controller
   bool _scrollControllerCreateSelfTag = false;
+
+  //prevent rolling with child
+  bool _preventRollingWithParent = false;
+
+  //rolling with child
+  bool get isPreventRollingWithParent {
+    return _preventRollingWithParent;
+  }
+
+  //prevent
+  void preventRollingWithParent() {
+    _preventRollingWithParent = true;
+  }
+
+  //restore
+  void restoreRollingWithParent() {
+    _preventRollingWithParent = false;
+  }
 
   //scroll controller
   ScrollController get scrollController {
