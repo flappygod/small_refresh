@@ -1,5 +1,4 @@
-import 'dart:math';
-
+import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/cupertino.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'small_refresh_resize.dart';
 import 'small_refresh_space.dart';
 import 'small_stick_page.dart';
+import 'dart:math';
 
 //call back
 typedef SmallCallback = Future<void> Function();
@@ -331,12 +331,6 @@ class SmallRefreshState extends State<SmallRefresh> {
   Widget build(BuildContext context) {
     List<Widget> slivers = [];
 
-    //add top padding if nested need
-    Widget? nestedTop = _buildNestedTop();
-    if (nestedTop != null) {
-      slivers.add(nestedTop);
-    }
-
     //add top padding
     Widget? topPadding = _buildTopPadding();
     if (topPadding != null) {
@@ -392,19 +386,6 @@ class SmallRefreshState extends State<SmallRefresh> {
         const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         );
-  }
-
-  //nested padding
-  Widget? _buildNestedTop() {
-    if (widget.controller.stickController == null) {
-      return null;
-    }
-    return SliverToBoxAdapter(
-      child: SmallResizeWidget(
-        key: widget.controller._stickTopKey,
-        controller: widget.controller._stickFlingTopResizeController,
-      ),
-    );
   }
 
   //build top padding
@@ -504,11 +485,6 @@ class SmallRefreshState extends State<SmallRefresh> {
     return widget.controller.getNestedScrollMax();
   }
 
-  //get scroll start
-  double _getNestedScrollStart() {
-    return widget.controller.getNestedScrollStart();
-  }
-
   //handle nested
   void _handleNotificationNested(ScrollNotification notification) {
     //null return
@@ -564,12 +540,12 @@ class SmallRefreshState extends State<SmallRefresh> {
               0;
           double needHeight = totalHeight - contentHeight;
 
-          ///need height ,if over height less than 10
-          if (needHeight < -10) {
+          ///need height
+          if (needHeight < 0) {
             widget.controller._stickFlingBtmResizeController.setHeight(0);
           } else {
             widget.controller._stickFlingBtmResizeController
-                .setHeight(needHeight + 10);
+                .setHeight(needHeight);
           }
         }
       }
@@ -583,7 +559,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         bool isGesture = (notification.dragDetails != null);
         //top resilience
         bool isResilienceTop = !isGesture &&
-            widget.controller._nestedFatherOut &&
+            widget.controller._nestedTopSpaceHidden &&
             widget.controller._getCurrentScrollPosition().pixels < 0;
         //no scroll space
         bool isNoScrollSpace =
@@ -595,9 +571,7 @@ class SmallRefreshState extends State<SmallRefresh> {
             deltaA > 0 &&
             isNoScrollSpace &&
             widget.controller.stickController!.scrollController.offset != 0) {
-          widget.controller._getCurrentScrollPosition().correctBy(
-              _getNestedScrollStart() -
-                  widget.controller._getCurrentScrollPosition().pixels);
+          widget.controller._getCurrentScrollPosition().correctPixels(0);
           double jumpTo = widget.controller.stickController!.scrollController
                   .position.pixels -
               deltaA;
@@ -611,14 +585,11 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (isGesture &&
             deltaA < 0 &&
             isNoScrollSpace &&
-            (widget.controller.scrollController.offset * 10).toInt() >
-                (_getNestedScrollStart() * 10).toInt() &&
+            widget.controller.scrollController.offset.round() > 0 &&
             (widget.controller.stickController!.scrollController.offset * 10)
-                    .toInt() !=
-                (_getNestedScrollMax() * 10).toInt()) {
-          widget.controller._getCurrentScrollPosition().correctBy(
-              _getNestedScrollStart() -
-                  widget.controller._getCurrentScrollPosition().pixels);
+                    .round() !=
+                (_getNestedScrollMax() * 10).round()) {
+          widget.controller._getCurrentScrollPosition().correctPixels(0);
           double jumpTo = widget.controller.stickController!.scrollController
                   .position.pixels -
               deltaA;
@@ -632,32 +603,22 @@ class SmallRefreshState extends State<SmallRefresh> {
         ///pull down normal
         if (deltaA > 0 &&
             widget.controller.stickController!.scrollController.offset > 0 &&
-            (widget.controller.stickController!.scrollController.offset * 10)
-                    .toInt() <=
-                (_getNestedScrollMax() * 10).toInt() &&
-            (widget.controller._getCurrentScrollPosition().pixels * 10)
-                    .toInt() <
-                (_getNestedScrollStart() * 10).toInt()) {
+            widget.controller.stickController!.scrollController.offset
+                    .round() <=
+                _getNestedScrollMax().round() &&
+            widget.controller.scrollController.offset.round() < 0) {
           double jumpTo = widget.controller.stickController!.scrollController
                   .position.pixels -
               deltaA;
-          if ((widget.controller._getCurrentScrollPosition().pixels -
-                      _getNestedScrollStart())
-                  .abs() <
-              deltaA) {
-            double jumpCross =
-                (widget.controller._getCurrentScrollPosition().pixels -
-                        _getNestedScrollStart())
-                    .abs();
+
+          ///pull down jumped to negative
+          if (widget.controller.scrollController.offset.abs() < deltaA) {
             jumpTo = widget.controller.stickController!.scrollController
                     .position.pixels -
-                jumpCross;
-            widget.controller._getCurrentScrollPosition().correctBy(
-                _getNestedScrollStart() -
-                    widget.controller._getCurrentScrollPosition().pixels);
-          } else {
-            widget.controller._getCurrentScrollPosition().correctBy(deltaA);
+                deltaA +
+                widget.controller.scrollController.offset.abs();
           }
+          widget.controller._getCurrentScrollPosition().correctPixels(0);
           jumpTo = jumpTo < 0 ? 0 : jumpTo;
           widget.controller.stickController!.scrollController.position
               .jumpTo(jumpTo);
@@ -666,30 +627,21 @@ class SmallRefreshState extends State<SmallRefresh> {
         ///pull up normal
         if (deltaA < 0 &&
             !isResilienceTop &&
-            (widget.controller.scrollController.offset * 10).toInt() >
-                (_getNestedScrollStart() * 10).toInt() &&
-            (widget.controller.stickController!.scrollController.offset * 10)
-                    .toInt() <
-                (_getNestedScrollMax() * 10).toInt()) {
+            widget.controller.scrollController.offset.round() > 0 &&
+            widget.controller.stickController!.scrollController.offset.round() <
+                _getNestedScrollMax().round()) {
           double jumpTo = widget.controller.stickController!.scrollController
                   .position.pixels -
               deltaA;
-          if (widget.controller.scrollController.offset -
-                  _getNestedScrollStart() <
-              deltaA.abs()) {
-            double jumpCross =
-                (widget.controller._getCurrentScrollPosition().pixels -
-                        _getNestedScrollStart())
-                    .abs();
+
+          ///pull up jumped to negative
+          if (widget.controller.scrollController.offset < deltaA.abs()) {
             jumpTo = widget.controller.stickController!.scrollController
-                    .position.pixels +
-                jumpCross;
-            widget.controller._getCurrentScrollPosition().correctBy(
-                _getNestedScrollStart() -
-                    widget.controller._getCurrentScrollPosition().pixels);
-          } else {
-            widget.controller._getCurrentScrollPosition().correctBy(deltaA);
+                    .position.pixels -
+                deltaA +
+                widget.controller.scrollController.offset.abs();
           }
+          widget.controller._getCurrentScrollPosition().correctPixels(0);
           jumpTo =
               jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
           widget.controller.stickController!.scrollController.position
@@ -714,8 +666,8 @@ class SmallRefreshState extends State<SmallRefresh> {
       return false;
     }
     //nested
-    if (widget.controller._nestedFatherOut == false) {
-      widget.controller._nestedFatherOut = true;
+    if (widget.controller._nestedTopSpaceHidden == false) {
+      widget.controller._nestedTopSpaceHidden = true;
       return true;
     }
     return false;
@@ -741,8 +693,8 @@ class SmallRefreshState extends State<SmallRefresh> {
       return false;
     }
     //nested
-    if (widget.controller._nestedFatherOut == true) {
-      widget.controller._nestedFatherOut = false;
+    if (widget.controller._nestedTopSpaceHidden == true) {
+      widget.controller._nestedTopSpaceHidden = false;
       return true;
     }
     return false;
@@ -1051,7 +1003,7 @@ abstract class SmallRefreshFooterWidget extends StatefulWidget {
 ///small refresh controller
 class SmallRefreshController {
   //scroll controller
-  late ScrollController _scrollController;
+  late SmallRefreshScrollController _scrollController;
 
   //scroll controller
   bool _scrollControllerCreateSelfTag = false;
@@ -1069,7 +1021,7 @@ class SmallRefreshController {
     _preventRollingWithParent = true;
 
     //father out remove top fling
-    _nestedFatherOut = true;
+    _nestedTopSpaceHidden = true;
     //future one
     Future futureOne = _scrollController.animateTo(
       0,
@@ -1093,7 +1045,7 @@ class SmallRefreshController {
   }
 
   //scroll controller
-  ScrollController get scrollController {
+  SmallRefreshScrollController get scrollController {
     return _scrollController;
   }
 
@@ -1109,10 +1061,6 @@ class SmallRefreshController {
   SmallSizeWidgetController? _scaleWidgetController;
 
   //resize controller
-  final SmallResizeWidgetController _stickFlingTopResizeController =
-      SmallResizeWidgetController(0);
-
-  //resize controller
   final SmallResizeWidgetController _stickFlingBtmResizeController =
       SmallResizeWidgetController(0);
 
@@ -1123,27 +1071,23 @@ class SmallRefreshController {
   final GlobalKey _stickBtmKey = GlobalKey();
 
   //out
-  bool _nestedFlingSpaceDisappear = true;
+  bool _nestedTopSpaceHiddenFlag = true;
 
   //set nested flag
-  set _nestedFatherOut(bool flag) {
-    if (_nestedFlingSpaceDisappear != flag) {
-      _nestedFlingSpaceDisappear = flag;
+  set _nestedTopSpaceHidden(bool flag) {
+    if (_nestedTopSpaceHiddenFlag != flag) {
+      _nestedTopSpaceHiddenFlag = flag;
     }
-    if (_nestedFlingSpaceDisappear == true) {
-      _stickFlingTopResizeController.setHeight(0);
-      _getCurrentScrollPosition()
-          .correctBy(-(stickController?.headHeight ?? 0));
+    if (_nestedTopSpaceHiddenFlag == true) {
+      _scrollController.setHeaderHeight(0);
     } else {
-      _stickFlingTopResizeController
-          .setHeight((stickController?.headHeight ?? 0));
-      _getCurrentScrollPosition().correctBy((stickController?.headHeight ?? 0));
+      _scrollController.setHeaderHeight(stickController?.headHeight ?? 0);
     }
   }
 
   //get nested flag
-  bool get _nestedFatherOut {
-    return _nestedFlingSpaceDisappear;
+  bool get _nestedTopSpaceHidden {
+    return _nestedTopSpaceHiddenFlag;
   }
 
   //pull progress
@@ -1186,14 +1130,14 @@ class SmallRefreshController {
 
   //start
   SmallRefreshController({
-    ScrollController? scrollController,
+    SmallRefreshScrollController? scrollController,
     SmallStickPageViewController? stickController,
     HideShowStatus footerHideStatus = HideShowStatus.hide,
   }) {
     //scroll controller create self
     _scrollControllerCreateSelfTag = scrollController == null;
     //set scroll controller
-    _scrollController = scrollController ?? ScrollController();
+    _scrollController = scrollController ?? SmallRefreshScrollController();
     //set stick controller
     _stickController = stickController;
     //register if need
@@ -1407,27 +1351,7 @@ class SmallRefreshController {
     return stickController!.headHeight;
   }
 
-  //get start
-  double getNestedScrollStart() {
-    if (_nestedFatherOut) {
-      return 0;
-    } else {
-      return stickController!.headHeight;
-    }
-  }
-
-  //get position
-  double getFixedScrollPosition() {
-    if (_scaleWidgetController == null) {
-      return 0;
-    }
-    if (stickController != null) {
-      return _getCurrentScrollPosition().pixels - getNestedScrollStart();
-    }
-    double headHeight = _getCurrentScrollPosition().pixels;
-    return headHeight;
-  }
-
+  //get current controller scroll position
   ScrollPosition _getCurrentScrollPosition() {
     return scrollController.position;
   }
@@ -1442,7 +1366,5 @@ class SmallRefreshController {
     if (_scrollControllerCreateSelfTag) {
       _scrollController.dispose();
     }
-    //dispose stick controller
-    _stickFlingTopResizeController.dispose();
   }
 }

@@ -1,3 +1,3 @@
-## 1.0.13
+## 1.0.14
 
-- add preventRollingWithParent for prevent rolling together sometime.
+- modify the implementation of nested view.
