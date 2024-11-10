@@ -6,7 +6,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   double _minScrollExtend = 0;
 
   ///callback
-  late VoidCallback _callback;
+  /*late VoidCallback _callback;*/
 
   SmallRefreshScrollPosition({
     required super.physics,
