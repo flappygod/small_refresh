@@ -331,6 +331,12 @@ class SmallRefreshState extends State<SmallRefresh> {
   Widget build(BuildContext context) {
     List<Widget> slivers = [];
 
+    //add top padding if nested need
+    Widget? nestedTop = _buildNestedTop();
+    if (nestedTop != null) {
+      slivers.add(nestedTop);
+    }
+
     //add top padding
     Widget? topPadding = _buildTopPadding();
     if (topPadding != null) {
@@ -386,6 +392,18 @@ class SmallRefreshState extends State<SmallRefresh> {
         const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         );
+  }
+
+  //nested padding
+  Widget? _buildNestedTop() {
+    if (widget.controller.stickController == null) {
+      return null;
+    }
+    return SliverToBoxAdapter(
+      child: SizedBox(
+        key: widget.controller._stickTopKey,
+      ),
+    );
   }
 
   //build top padding
@@ -571,6 +589,13 @@ class SmallRefreshState extends State<SmallRefresh> {
             deltaA > 0 &&
             isNoScrollSpace &&
             widget.controller.stickController!.scrollController.offset != 0) {
+          //pull down when scroll over
+          if (widget.controller._getCurrentScrollPosition().pixels - deltaA >
+              0) {
+            widget.controller._getCurrentScrollPosition().correctBy(-deltaA);
+            return;
+          }
+
           widget.controller._getCurrentScrollPosition().correctPixels(0);
           double jumpTo = widget.controller.stickController!.scrollController
                   .position.pixels -

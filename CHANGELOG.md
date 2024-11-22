@@ -1,3 +1,3 @@
-## 1.0.15
+## 1.0.16
 
-- Make nested child scroll view can fling if the content's height less than listview.
+- Fix a bug in nested scroll view.
