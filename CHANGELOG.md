@@ -1,3 +1,3 @@
-## 1.0.16
+## 1.0.17
 
-- Fix a bug in nested scroll view.
+- Change SmallRefreshController to extends ScrollController.

@@ -81,12 +81,10 @@ class SmallStickPageViewController extends ChangeNotifier {
 
   //stop current scroll
   void _stopCurrentScroll() {
-    if ((_currentScrollController?.scrollController.positions.isNotEmpty ??
-            false) &&
+    if ((_currentScrollController?.positions.isNotEmpty ?? false) &&
         _stopFlag == false) {
       _stopFlag = true;
-      _currentScrollController?.scrollController
-          .jumpTo(_currentScrollController?.scrollController.offset ?? 0);
+      _currentScrollController?.jumpTo(_currentScrollController?.offset ?? 0);
     }
   }
 
