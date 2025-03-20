@@ -3,6 +3,16 @@ import 'package:flutter/cupertino.dart';
 
 ///small refresh scroll controller
 class SmallRefreshScrollController extends ScrollController {
+  SmallRefreshScrollController({
+    double initialScrollOffset = 0.0,
+    bool keepScrollOffset = true,
+    String? debugLabel,
+  }) : super(
+          initialScrollOffset: initialScrollOffset,
+          keepScrollOffset: keepScrollOffset,
+          debugLabel: debugLabel,
+        );
+
   ///set header height
   void setHeaderHeight(double height) {
     if (position is SmallRefreshScrollPosition) {

@@ -1155,6 +1155,9 @@ class SmallRefreshController extends SmallRefreshScrollController {
   SmallRefreshController({
     SmallStickPageViewController? stickController,
     HideShowStatus footerHideStatus = HideShowStatus.hide,
+    super.debugLabel,
+    super.initialScrollOffset,
+    super.keepScrollOffset,
   }) {
     //set stick controller
     _stickController = stickController;

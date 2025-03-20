@@ -1,3 +1,3 @@
-## 1.0.17
+## 1.0.18
 
-- Change SmallRefreshController to extends ScrollController.
+- Add  initialScrollOffset,keepScrollOffset,debugLabel.
