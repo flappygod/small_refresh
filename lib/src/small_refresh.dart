@@ -702,7 +702,6 @@ class SmallRefreshState extends State<SmallRefresh> {
     //nested
     if (widget.controller._nestedTopSpaceHidden == false) {
       widget.controller._nestedTopSpaceHidden = true;
-      widget.controller.position.setPixels(widget.controller.position.pixels);
       return true;
     }
     return false;
