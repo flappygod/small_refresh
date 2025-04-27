@@ -20,6 +20,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   ///set min scroll extend
   set headerHeight(double data) {
     _minScrollExtend = -data;
+    notifyListeners();
     /*_callback = () {
       if (pixels < _minScrollExtend) {
         jumpTo(_minScrollExtend);
