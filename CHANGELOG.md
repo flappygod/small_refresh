@@ -1,3 +1,3 @@
 ## 1.0.19
 
-- Add  initialScrollOffset,keepScrollOffset,debugLabel.
+- Add a rebound effect.

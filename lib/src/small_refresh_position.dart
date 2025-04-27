@@ -5,8 +5,6 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   ///min scroll extend
   double _minScrollExtend = 0;
 
-  ///callback
-  /*late VoidCallback _callback;*/
 
   SmallRefreshScrollPosition({
     required super.physics,
@@ -20,14 +18,8 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   ///set min scroll extend
   set headerHeight(double data) {
     _minScrollExtend = -data;
-    notifyListeners();
-    /*_callback = () {
-      if (pixels < _minScrollExtend) {
-        jumpTo(_minScrollExtend);
-      }
-    };
-    removeListener(_callback);
-    addListener(_callback);*/
+    applyContentDimensions(minScrollExtent, maxScrollExtent);
+    applyBoundaryConditions(0);
   }
 
   @override
