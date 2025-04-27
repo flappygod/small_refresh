@@ -641,7 +641,7 @@ class SmallRefreshState extends State<SmallRefresh> {
             _forceNestedNotFling();
 
             ///pull down jumped to 0
-            widget.controller.position.jumpTo(0);
+            //widget.controller.position.jumpTo(0);
             widget.controller.stickController!.scrollController.position
                 .jumpTo(0);
           } else {
@@ -702,6 +702,7 @@ class SmallRefreshState extends State<SmallRefresh> {
     //nested
     if (widget.controller._nestedTopSpaceHidden == false) {
       widget.controller._nestedTopSpaceHidden = true;
+      widget.controller.position.setPixels(widget.controller.position.pixels);
       return true;
     }
     return false;
