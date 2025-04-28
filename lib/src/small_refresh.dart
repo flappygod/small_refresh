@@ -389,9 +389,10 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //scroll physics
   ScrollPhysics _buildScrollPhysics() {
-    return SmallRefreshBouncingScrollPhysics(
-      parent: widget.physics,
-    );
+    return widget.physics ??
+        SmallRefreshNestedBouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        );
   }
 
   //nested padding

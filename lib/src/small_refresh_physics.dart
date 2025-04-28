@@ -2,19 +2,24 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:math' as math;
 
-class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
+class SmallRefreshNestedBouncingScrollPhysics extends ScrollPhysics {
+  final bool isNested;
+  final bool isRefresh;
+
   /// Creates scroll physics that bounce back from the edge.
-  const SmallRefreshBouncingScrollPhysics({
+  const SmallRefreshNestedBouncingScrollPhysics({
     this.decelerationRate = ScrollDecelerationRate.normal,
     super.parent,
+    this.isNested = false,
+    this.isRefresh = false,
   });
 
   /// Used to determine parameters for friction simulations.
   final ScrollDecelerationRate decelerationRate;
 
   @override
-  SmallRefreshBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return SmallRefreshBouncingScrollPhysics(
+  SmallRefreshNestedBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return SmallRefreshNestedBouncingScrollPhysics(
         parent: buildParent(ancestor), decelerationRate: decelerationRate);
   }
 
