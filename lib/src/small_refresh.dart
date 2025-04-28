@@ -389,10 +389,9 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //scroll physics
   ScrollPhysics _buildScrollPhysics() {
-    return widget.physics ??
-        const SmallRefreshBouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        );
+    return SmallRefreshBouncingScrollPhysics(
+      parent: widget.physics,
+    );
   }
 
   //nested padding
@@ -638,15 +637,14 @@ class SmallRefreshState extends State<SmallRefresh> {
                   deltaA.abs();
 
           if (jumpTo < 0) {
-            //not fling
+            ///not fling
             _forceNestedNotFling();
 
             ///pull down jumped to 0
-            //widget.controller.position.jumpTo(0);
             widget.controller.stickController!.scrollController.position
                 .jumpTo(0);
           } else {
-            //must use correctBy to avoid deltaA increase，this is correct to pixel zero
+            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             widget.controller.position.correctBy(-widget.controller.offset);
             jumpTo = jumpTo < 0 ? 0 : jumpTo;
             widget.controller.stickController!.scrollController.position
@@ -666,12 +664,11 @@ class SmallRefreshState extends State<SmallRefresh> {
 
           if (jumpTo > _getNestedScrollMax()) {
             ///pull up jumped to scroll max
-            //widget.controller.scrollController.position.jumpTo(0);
             widget.controller.position.correctBy(-widget.controller.offset);
             widget.controller.stickController!.scrollController.position
                 .jumpTo(_getNestedScrollMax());
           } else {
-            //must use correctBy to avoid deltaA increase，this is correct to pixel zero
+            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             widget.controller.position.correctBy(-widget.controller.offset);
             jumpTo =
                 jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;

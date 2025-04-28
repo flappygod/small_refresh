@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
+import 'dart:math' as math;
 
 class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
   /// Creates scroll physics that bounce back from the edge.
