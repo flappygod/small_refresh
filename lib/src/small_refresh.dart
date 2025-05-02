@@ -688,7 +688,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         }
         if (widget.controller.stickController!.scrollController.offset <
             widget.controller.stickController!.headHeight - flingOffset) {
-          widget.controller.nestedHeadCanFlingFlag = true;
+          widget.controller.nestedFootCanFlingFlag = true;
         }
       }
 
@@ -700,7 +700,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         }
         if (widget.controller.stickController!.scrollController.offset >=
             widget.controller.stickController!.headHeight - flingOffset) {
-          widget.controller.nestedHeadCanFlingFlag = false;
+          widget.controller.nestedFootCanFlingFlag = false;
         }
       }
     });
