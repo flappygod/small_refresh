@@ -1,25 +1,20 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-class SmallRefreshNestedBouncingScrollPhysics extends ScrollPhysics {
-  final bool isNested;
-  final bool isRefresh;
-
+class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
   /// Creates scroll physics that bounce back from the edge.
-  const SmallRefreshNestedBouncingScrollPhysics({
+  const SmallRefreshBouncingScrollPhysics({
     this.decelerationRate = ScrollDecelerationRate.normal,
     super.parent,
-    this.isNested = false,
-    this.isRefresh = false,
   });
 
   /// Used to determine parameters for friction simulations.
   final ScrollDecelerationRate decelerationRate;
 
   @override
-  SmallRefreshNestedBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return SmallRefreshNestedBouncingScrollPhysics(
+  SmallRefreshBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return SmallRefreshBouncingScrollPhysics(
         parent: buildParent(ancestor), decelerationRate: decelerationRate);
   }
 
@@ -140,17 +135,22 @@ class SmallRefreshNestedBouncingScrollPhysics extends ScrollPhysics {
   double get dragStartDistanceMotionThreshold => 3.5;
 
   @override
-  double get maxFlingVelocity => switch (decelerationRate) {
-        ScrollDecelerationRate.fast => kMaxFlingVelocity * 8.0,
-        ScrollDecelerationRate.normal => super.maxFlingVelocity,
-      };
+  double get maxFlingVelocity {
+    return switch (decelerationRate) {
+      ScrollDecelerationRate.fast => kMaxFlingVelocity * 8.0,
+      ScrollDecelerationRate.normal => super.maxFlingVelocity,
+    };
+  }
 
   @override
   SpringDescription get spring {
     switch (decelerationRate) {
       case ScrollDecelerationRate.fast:
         return SpringDescription.withDampingRatio(
-            mass: 0.3, stiffness: 75.0, ratio: 1.3);
+          mass: 0.3,
+          stiffness: 75.0,
+          ratio: 1.3,
+        );
       case ScrollDecelerationRate.normal:
         return super.spring;
     }
