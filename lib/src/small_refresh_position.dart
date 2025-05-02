@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   ///min scroll extend
   double _minScrollExtend = 0;
+  double _maxScrollExtend = 0;
 
   SmallRefreshScrollPosition({
     required super.physics,
@@ -24,6 +25,19 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
     _minScrollExtend = 0;
   }
 
+  ///max
+  void setFooterCanFling() {
+    _maxScrollExtend = 10;
+  }
+
+  ///max
+  void setFooterNotFling() {
+    _maxScrollExtend = 0;
+  }
+
   @override
   double get minScrollExtent => _minScrollExtend;
+
+  @override
+  double get maxScrollExtent => super.maxScrollExtent + _maxScrollExtend;
 }

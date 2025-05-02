@@ -27,6 +27,20 @@ class SmallRefreshScrollController extends ScrollController {
     }
   }
 
+  ///set footer can fling
+  void setFooterCanFling() {
+    if (position is SmallRefreshScrollPosition) {
+      (position as SmallRefreshScrollPosition).setFooterCanFling();
+    }
+  }
+
+  ///set footer not fling
+  void setFooterNotFling() {
+    if (position is SmallRefreshScrollPosition) {
+      (position as SmallRefreshScrollPosition).setFooterNotFling();
+    }
+  }
+
   @override
   ScrollPosition createScrollPosition(
     ScrollPhysics physics,
