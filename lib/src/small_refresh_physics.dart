@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
-  final double minScroll = -15;
-  final double maxScroll = 15;
-
   /// Creates scroll physics that bounce back from the edge.
   const SmallRefreshBouncingScrollPhysics({
     this.decelerationRate = ScrollDecelerationRate.normal,
@@ -18,7 +15,9 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
   @override
   SmallRefreshBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
     return SmallRefreshBouncingScrollPhysics(
-        parent: buildParent(ancestor), decelerationRate: decelerationRate);
+        parent: buildParent(ancestor),
+        decelerationRate: decelerationRate
+    );
   }
 
   /// The multiple applied to overscroll to make it appear that scrolling past
@@ -30,35 +29,30 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
   /// as more of the area past the edge is dragged in (represented by an increasing
   /// `overscrollFraction` which starts at 0 when there is no overscroll).
   double frictionFactor(double overscrollFraction) {
-    return math.pow(1 - overscrollFraction, 2) *
-        switch (decelerationRate) {
-          ScrollDecelerationRate.fast => 0.26,
-          ScrollDecelerationRate.normal => 0.52,
-        };
+    return math.pow(1 - overscrollFraction, 2) * switch (decelerationRate) {
+      ScrollDecelerationRate.fast   => 0.26,
+      ScrollDecelerationRate.normal => 0.52,
+    };
   }
 
   @override
   double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {
     assert(offset != 0.0);
-    assert(0 <= position.maxScrollExtent);
+    assert(position.minScrollExtent <= position.maxScrollExtent);
 
     if (!position.outOfRange) {
       return offset;
     }
 
-    final double overscrollPastStart =
-        math.max(minScroll - position.pixels, 0.0);
-    final double overscrollPastEnd =
-        math.max(position.pixels - position.maxScrollExtent - maxScroll, 0.0);
-    final double overscrollPast =
-        math.max(overscrollPastStart, overscrollPastEnd);
-    final bool easing = (overscrollPastStart > 0.0 && offset < 0.0) ||
-        (overscrollPastEnd > 0.0 && offset > 0.0);
+    final double overscrollPastStart = math.max(position.minScrollExtent - position.pixels, 0.0);
+    final double overscrollPastEnd = math.max(position.pixels - position.maxScrollExtent, 0.0);
+    final double overscrollPast = math.max(overscrollPastStart, overscrollPastEnd);
+    final bool easing = (overscrollPastStart > 0.0 && offset < 0.0)
+        || (overscrollPastEnd > 0.0 && offset > 0.0);
 
     final double friction = easing
-        // Apply less resistance when easing the overscroll vs tensioning.
-        ? frictionFactor(
-            (overscrollPast - offset.abs()) / position.viewportDimension)
+    // Apply less resistance when easing the overscroll vs tensioning.
+        ? frictionFactor((overscrollPast - offset.abs()) / position.viewportDimension)
         : frictionFactor(overscrollPast / position.viewportDimension);
     final double direction = offset.sign;
 
@@ -68,8 +62,7 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
     return direction * _applyFriction(overscrollPast, offset.abs(), friction);
   }
 
-  static double _applyFriction(
-      double extentOutside, double absDelta, double gamma) {
+  static double _applyFriction(double extentOutside, double absDelta, double gamma) {
     assert(absDelta > 0);
     double total = 0.0;
     if (extentOutside > 0) {
@@ -87,15 +80,14 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
   double applyBoundaryConditions(ScrollMetrics position, double value) => 0.0;
 
   @override
-  Simulation? createBallisticSimulation(
-      ScrollMetrics position, double velocity) {
+  Simulation? createBallisticSimulation(ScrollMetrics position, double velocity) {
     final Tolerance tolerance = toleranceFor(position);
     if (velocity.abs() >= tolerance.velocity || position.outOfRange) {
       return BouncingScrollSimulation(
         spring: spring,
         position: position.pixels,
         velocity: velocity,
-        leadingExtent: 0,
+        leadingExtent: position.minScrollExtent,
         trailingExtent: position.maxScrollExtent,
         tolerance: tolerance,
         constantDeceleration: switch (decelerationRate) {
@@ -129,8 +121,7 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
   @override
   double carriedMomentum(double existingVelocity) {
     return existingVelocity.sign *
-        math.min(0.000816 * math.pow(existingVelocity.abs(), 1.967).toDouble(),
-            40000.0);
+        math.min(0.000816 * math.pow(existingVelocity.abs(), 1.967).toDouble(), 40000.0);
   }
 
   // Eyeballed from observation to counter the effect of an unintended scroll
