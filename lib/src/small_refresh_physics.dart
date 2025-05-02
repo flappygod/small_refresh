@@ -47,7 +47,7 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
     }
 
     final double overscrollPastStart =
-        math.max(0 - position.pixels, 0.0);
+        math.max(minScroll - position.pixels, 0.0);
     final double overscrollPastEnd =
         math.max(position.pixels - position.maxScrollExtent - maxScroll, 0.0);
     final double overscrollPast =
@@ -95,8 +95,8 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
         spring: spring,
         position: position.pixels,
         velocity: velocity,
-        leadingExtent: minScroll,
-        trailingExtent: position.maxScrollExtent + maxScroll,
+        leadingExtent: 0,
+        trailingExtent: position.maxScrollExtent,
         tolerance: tolerance,
         constantDeceleration: switch (decelerationRate) {
           ScrollDecelerationRate.fast => 1400,
