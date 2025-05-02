@@ -560,11 +560,11 @@ class SmallRefreshState extends State<SmallRefresh> {
           double needHeight = totalHeight - contentHeight;
 
           ///need height ,if over height less than 10
-          if (needHeight < -10) {
+          if (needHeight < 0) {
             widget.controller._stickFlingBtmResizeController.setHeight(0);
           } else {
             widget.controller._stickFlingBtmResizeController
-                .setHeight(needHeight + 10);
+                .setHeight(needHeight);
           }
         }
       }

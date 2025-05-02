@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
+  final double minScroll = -15;
+  final double maxScroll = 15;
+
   /// Creates scroll physics that bounce back from the edge.
   const SmallRefreshBouncingScrollPhysics({
     this.decelerationRate = ScrollDecelerationRate.normal,
@@ -43,9 +46,10 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
       return offset;
     }
 
-    final double overscrollPastStart = math.max(0 - position.pixels, 0.0);
+    final double overscrollPastStart =
+        math.max(minScroll - position.pixels, 0.0);
     final double overscrollPastEnd =
-        math.max(position.pixels - position.maxScrollExtent, 0.0);
+        math.max(position.pixels - position.maxScrollExtent - maxScroll, 0.0);
     final double overscrollPast =
         math.max(overscrollPastStart, overscrollPastEnd);
     final bool easing = (overscrollPastStart > 0.0 && offset < 0.0) ||
@@ -91,8 +95,8 @@ class SmallRefreshBouncingScrollPhysics extends ScrollPhysics {
         spring: spring,
         position: position.pixels,
         velocity: velocity,
-        leadingExtent: 0,
-        trailingExtent: position.maxScrollExtent,
+        leadingExtent: minScroll,
+        trailingExtent: position.maxScrollExtent + maxScroll,
         tolerance: tolerance,
         constantDeceleration: switch (decelerationRate) {
           ScrollDecelerationRate.fast => 1400,
