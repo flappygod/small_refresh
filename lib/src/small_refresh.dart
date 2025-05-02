@@ -683,9 +683,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///can fling
       if (notification is ScrollStartNotification) {
         if (widget.controller.stickController!.scrollController.offset >
-                flingOffset &&
-            widget.controller.stickController!.scrollController.offset <
-                widget.controller.stickController!.headHeight - flingOffset) {
+            flingOffset) {
           _forceNestedCanFling();
         }
       }
@@ -693,9 +691,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///set not fling
       if (notification is ScrollUpdateNotification) {
         if (widget.controller.stickController!.scrollController.offset <=
-                flingOffset ||
-            widget.controller.stickController!.scrollController.offset >=
-                widget.controller.stickController!.headHeight - flingOffset) {
+            flingOffset) {
           _forceNestedNotFling();
         }
       }
