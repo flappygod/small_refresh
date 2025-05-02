@@ -13,10 +13,17 @@ class SmallRefreshScrollController extends ScrollController {
           debugLabel: debugLabel,
         );
 
-  ///set header height
-  void setHeaderHeight(double height) {
+  ///set header can fling
+  void setHeaderCanFling(){
     if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).headerHeight = height;
+      (position as SmallRefreshScrollPosition).setHeaderCanFling();
+    }
+  }
+
+  ///set header not fling
+  void setHeaderNotFling(){
+    if (position is SmallRefreshScrollPosition) {
+      (position as SmallRefreshScrollPosition).setHeaderCanFling();
     }
   }
 

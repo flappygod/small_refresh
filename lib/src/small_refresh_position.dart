@@ -15,10 +15,13 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   });
 
   ///set min scroll extend
-  set headerHeight(double data) {
-    if (_minScrollExtend != -data) {
-      _minScrollExtend = -data;
-    }
+  void setHeaderCanFling() {
+    _minScrollExtend = -15;
+  }
+
+  ///set min scroll extend
+  void setHeaderNotFling() {
+    _minScrollExtend = 0;
   }
 
   @override

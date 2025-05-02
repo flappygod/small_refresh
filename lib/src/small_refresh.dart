@@ -578,7 +578,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         bool isGesture = (notification.dragDetails != null);
         //top resilience
         bool isResilienceTop = !isGesture &&
-            widget.controller._nestedTopSpaceHidden &&
+            !widget.controller.headerFlingFlag &&
             widget.controller._getCurrentScrollPosition().pixels < 0;
         //no scroll space
         bool isNoScrollSpace =
@@ -698,9 +698,8 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.controller.stickController == null) {
       return false;
     }
-    //nested
-    if (widget.controller._nestedTopSpaceHidden == false) {
-      widget.controller._nestedTopSpaceHidden = true;
+    if (widget.controller.headerFlingFlag == true) {
+      widget.controller.headerFlingFlag = false;
       return true;
     }
     return false;
@@ -711,9 +710,8 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.controller.stickController == null) {
       return false;
     }
-    //nested
-    if (widget.controller._nestedTopSpaceHidden == true) {
-      widget.controller._nestedTopSpaceHidden = false;
+    if (widget.controller.headerFlingFlag == false) {
+      widget.controller.headerFlingFlag = true;
       return true;
     }
     return false;
@@ -1048,7 +1046,8 @@ class SmallRefreshController extends SmallRefreshScrollController {
     _preventRollingWithParent = true;
 
     //father out remove top fling
-    _nestedTopSpaceHidden = true;
+    headerFlingFlag = false;
+
     //future one
     Future futureOne = animateTo(
       0,
@@ -1093,23 +1092,23 @@ class SmallRefreshController extends SmallRefreshScrollController {
   final GlobalKey _stickBtmKey = GlobalKey();
 
   //out
-  bool _nestedTopSpaceHiddenFlag = true;
+  bool _headerCanFlingFlag = true;
 
   //set nested flag
-  set _nestedTopSpaceHidden(bool flag) {
-    if (_nestedTopSpaceHiddenFlag != flag) {
-      _nestedTopSpaceHiddenFlag = flag;
+  set headerFlingFlag(bool flag) {
+    if (_headerCanFlingFlag != flag) {
+      _headerCanFlingFlag = flag;
     }
-    if (_nestedTopSpaceHiddenFlag == true) {
-      setHeaderHeight(0);
+    if (_headerCanFlingFlag == true) {
+      setHeaderCanFling();
     } else {
-      setHeaderHeight(stickController?.headHeight ?? 0);
+      setHeaderNotFling();
     }
   }
 
   //get nested flag
-  bool get _nestedTopSpaceHidden {
-    return _nestedTopSpaceHiddenFlag;
+  bool get headerFlingFlag {
+    return _headerCanFlingFlag;
   }
 
   //pull progress
