@@ -27,6 +27,4 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   @override
   double get minScrollExtent => _minScrollExtend;
 
-  @override
-  double get maxScrollExtent => super.maxScrollExtent + 10;
 }
