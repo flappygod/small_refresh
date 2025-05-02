@@ -13,17 +13,31 @@ class SmallRefreshScrollController extends ScrollController {
           debugLabel: debugLabel,
         );
 
-  ///set header can fling
-  void setHeaderCanFling() {
+  ///set head can fling
+  void setHeadCanFling() {
     if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setHeaderCanFling();
+      (position as SmallRefreshScrollPosition).setHeadCanFling();
     }
   }
 
-  ///set header not fling
-  void setHeaderNotFling() {
+  ///set head not fling
+  void setHeadNotFling() {
     if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setHeaderNotFling();
+      (position as SmallRefreshScrollPosition).setHeadNotFling();
+    }
+  }
+
+  ///set foot can fling
+  void setFootCanFling() {
+    if (position is SmallRefreshScrollPosition) {
+      (position as SmallRefreshScrollPosition).setFootCanFling();
+    }
+  }
+
+  ///set foot not fling
+  void setFootNotFling() {
+    if (position is SmallRefreshScrollPosition) {
+      (position as SmallRefreshScrollPosition).setFootNotFling();
     }
   }
 

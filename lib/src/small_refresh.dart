@@ -245,7 +245,7 @@ class SmallRefreshState extends State<SmallRefresh> {
             refreshStatus = RefreshStatus.refreshStatusPullLock;
 
             ///nested must not fling when refresh start
-            _forceNestedNotFling();
+            widget.controller.nestedHeadCanFlingFlag = false;
             _forceNestedNotScroll();
 
             ///set show animation and auto animation flag
@@ -579,7 +579,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         bool isGesture = (notification.dragDetails != null);
         //top resilience
         bool isResilienceTop = !isGesture &&
-            !widget.controller.nestedFlingFlag &&
+            !widget.controller.nestedHeadCanFlingFlag &&
             widget.controller._getCurrentScrollPosition().pixels < 0;
         //no scroll space
         bool isNoScrollSpace =
@@ -640,7 +640,7 @@ class SmallRefreshState extends State<SmallRefresh> {
 
           if (jumpTo < 0) {
             ///not fling
-            _forceNestedNotFling();
+            widget.controller.nestedHeadCanFlingFlag = false;
 
             ///pull down jumped to 0
             widget.controller.stickController!.scrollController.position
@@ -684,7 +684,11 @@ class SmallRefreshState extends State<SmallRefresh> {
       if (notification is ScrollStartNotification) {
         if (widget.controller.stickController!.scrollController.offset >
             flingOffset) {
-          _forceNestedCanFling();
+          widget.controller.nestedHeadCanFlingFlag = true;
+        }
+        if (widget.controller.stickController!.scrollController.offset <
+            widget.controller.stickController!.headHeight - flingOffset) {
+          widget.controller.nestedHeadCanFlingFlag = true;
         }
       }
 
@@ -692,34 +696,14 @@ class SmallRefreshState extends State<SmallRefresh> {
       if (notification is ScrollUpdateNotification) {
         if (widget.controller.stickController!.scrollController.offset <=
             flingOffset) {
-          _forceNestedNotFling();
+          widget.controller.nestedHeadCanFlingFlag = false;
+        }
+        if (widget.controller.stickController!.scrollController.offset >=
+            widget.controller.stickController!.headHeight - flingOffset) {
+          widget.controller.nestedHeadCanFlingFlag = false;
         }
       }
     });
-  }
-
-  //force nested out
-  bool _forceNestedNotFling() {
-    if (widget.controller.stickController == null) {
-      return false;
-    }
-    if (widget.controller.nestedFlingFlag == true) {
-      widget.controller.nestedFlingFlag = false;
-      return true;
-    }
-    return false;
-  }
-
-  //force nested doing
-  bool _forceNestedCanFling() {
-    if (widget.controller.stickController == null) {
-      return false;
-    }
-    if (widget.controller.nestedFlingFlag == false) {
-      widget.controller.nestedFlingFlag = true;
-      return true;
-    }
-    return false;
   }
 
   //force not scroll
@@ -875,7 +859,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         //check twice
         if (_refreshStatus == RefreshStatus.refreshStatusRefreshing) {
           //end anim must not fling
-          _forceNestedNotFling();
+          widget.controller.nestedHeadCanFlingFlag = false;
           //end anim must not scroll
           _forceNestedNotScroll();
           //check current position,if header is no longer show,just set status
@@ -1051,7 +1035,7 @@ class SmallRefreshController extends SmallRefreshScrollController {
     _preventRollingWithParent = true;
 
     //father out remove top fling
-    nestedFlingFlag = false;
+    nestedHeadCanFlingFlag = false;
 
     //future one
     Future futureOne = animateTo(
@@ -1097,23 +1081,49 @@ class SmallRefreshController extends SmallRefreshScrollController {
   final GlobalKey _stickBtmKey = GlobalKey();
 
   //out
-  bool _nestedCanFlingFlag = false;
+  bool _nestedHeadCanFlingFlag = false;
 
   //set nested flag
-  set nestedFlingFlag(bool flag) {
-    if (_nestedCanFlingFlag != flag) {
-      _nestedCanFlingFlag = flag;
+  set nestedHeadCanFlingFlag(bool flag) {
+    if (_stickController == null) {
+      return;
     }
-    if (_nestedCanFlingFlag == true) {
-      setHeaderCanFling();
+    if (_nestedHeadCanFlingFlag != flag) {
+      _nestedHeadCanFlingFlag = flag;
+    }
+    if (_nestedHeadCanFlingFlag == true) {
+      setHeadCanFling();
     } else {
-      setHeaderNotFling();
+      setHeadNotFling();
     }
   }
 
   //get nested flag
-  bool get nestedFlingFlag {
-    return _nestedCanFlingFlag;
+  bool get nestedHeadCanFlingFlag {
+    return _nestedHeadCanFlingFlag;
+  }
+
+  //out
+  bool _nestedFootCanFlingFlag = false;
+
+  //set nested flag
+  set nestedFootCanFlingFlag(bool flag) {
+    if (_stickController == null) {
+      return;
+    }
+    if (_nestedFootCanFlingFlag != flag) {
+      _nestedFootCanFlingFlag = flag;
+    }
+    if (_nestedFootCanFlingFlag == true) {
+      setFootCanFling();
+    } else {
+      setFootNotFling();
+    }
+  }
+
+  //get nested flag
+  bool get nestedFootCanFlingFlag {
+    return _nestedFootCanFlingFlag;
   }
 
   //pull progress
