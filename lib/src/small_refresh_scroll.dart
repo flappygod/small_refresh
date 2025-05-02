@@ -14,14 +14,14 @@ class SmallRefreshScrollController extends ScrollController {
         );
 
   ///set header can fling
-  void setHeaderCanFling(){
+  void setHeaderCanFling() {
     if (position is SmallRefreshScrollPosition) {
       (position as SmallRefreshScrollPosition).setHeaderCanFling();
     }
   }
 
   ///set header not fling
-  void setHeaderNotFling(){
+  void setHeaderNotFling() {
     if (position is SmallRefreshScrollPosition) {
       (position as SmallRefreshScrollPosition).setHeaderNotFling();
     }

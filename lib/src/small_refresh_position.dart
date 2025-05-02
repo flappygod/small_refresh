@@ -16,7 +16,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
 
   ///set min scroll extend
   void setHeaderCanFling() {
-    _minScrollExtend = -15;
+    _minScrollExtend = -10;
   }
 
   ///set min scroll extend

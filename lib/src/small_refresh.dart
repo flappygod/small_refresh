@@ -1,4 +1,3 @@
-import 'package:small_refresh/src/small_refresh_physics.dart';
 import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
@@ -390,7 +389,7 @@ class SmallRefreshState extends State<SmallRefresh> {
   //scroll physics
   ScrollPhysics _buildScrollPhysics() {
     return widget.physics ??
-        SmallRefreshBouncingScrollPhysics(
+        BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         );
   }
