@@ -1110,10 +1110,8 @@ class SmallRefreshController extends SmallRefreshScrollController {
     }
     if (_nestedCanFlingFlag == true) {
       setHeaderCanFling();
-      setFooterCanFling();
     } else {
       setHeaderNotFling();
-      setFooterNotFling();
     }
   }
 
