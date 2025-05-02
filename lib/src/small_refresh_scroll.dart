@@ -23,7 +23,7 @@ class SmallRefreshScrollController extends ScrollController {
   ///set header not fling
   void setHeaderNotFling(){
     if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setHeaderCanFling();
+      (position as SmallRefreshScrollPosition).setHeaderNotFling();
     }
   }
 
