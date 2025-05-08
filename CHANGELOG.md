@@ -1,3 +1,3 @@
-## 1.0.21
+## 1.0.22
 
-- Fix bugs in nested scroll view.
+- Change flingOffset to make scroll more smooth.
