@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:small_refresh/small_refresh.dart';
 
 ///negatived scroll position
 class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
@@ -16,7 +17,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   });
 
   void setHeadCanFling() {
-    _minScrollExtend = -10;
+    _minScrollExtend = -flingOffset;
   }
 
   void setHeadNotFling() {
@@ -24,7 +25,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   }
 
   void setFootCanFling() {
-    _maxScrollExtend = 10;
+    _maxScrollExtend = flingOffset;
   }
 
   void setFootNotFling() {

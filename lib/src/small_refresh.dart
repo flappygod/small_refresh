@@ -32,7 +32,7 @@ typedef SmallFooterHideStatusChangeListener = Function(
 ///duration time
 const int durationTime = 320;
 
-const int flingOffset = 20;
+const double flingOffset = 20;
 
 ///small refresh action events
 enum SmallRefreshActionEvents {
