@@ -154,7 +154,7 @@ class SmallStickPageView extends StatefulWidget {
   final Widget stickView;
 
   //body
-  final PageView body;
+  final Widget body;
 
   //controller
   final SmallStickPageViewController controller;

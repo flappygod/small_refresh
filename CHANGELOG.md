@@ -1,3 +1,3 @@
-## 1.0.22
+## 1.0.23
 
-- Change flingOffset to make scroll more smooth.
+- Change SmallStickPageView body.
