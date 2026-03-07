@@ -4,18 +4,15 @@ import 'package:flutter/material.dart';
 import 'small_refresh.dart';
 
 //notifier
-class SmallStickPageViewController extends ChangeNotifier {
+class SmallStickPageViewController extends ScrollController {
   //head height
-  double _headHeight = 0;
+  double? _headHeight;
 
   //stick height
-  double _stickHeight = 0;
+  double? _stickHeight;
 
   //content height
-  double _contentHeight = 0;
-
-  //stick controller
-  final ScrollController scrollController = ScrollController();
+  double? _contentHeight;
 
   //cached child scroll controllers
   final List<SmallRefreshController> _childScrollControllers = [];
@@ -32,12 +29,12 @@ class SmallStickPageViewController extends ChangeNotifier {
   //create
   SmallStickPageViewController() {
     ///limit scroll controller
-    scrollController.addListener(() {
-      if (scrollController.offset > headHeight) {
-        scrollController.position.jumpTo(headHeight);
+    addListener(() {
+      if (offset > headHeight) {
+        position.jumpTo(headHeight);
       }
-      if (scrollController.offset < 0) {
-        scrollController.position.jumpTo(0);
+      if (offset < 0) {
+        position.jumpTo(0);
       }
     });
   }
@@ -89,59 +86,62 @@ class SmallStickPageViewController extends ChangeNotifier {
   }
 
   //set head height
-  void _setHeadHeight(double height) {
+  bool _setHeadHeight(double height) {
     if (_headHeight != height) {
       _headHeight = height;
-      _checkReady();
+      return _isTopReady();
     }
+    return false;
   }
 
   //set stick height
-  void _setStickHeight(double height) {
+  bool _setStickHeight(double height) {
     if (_stickHeight != height) {
       _stickHeight = height;
-      _checkReady();
+      return _isTopReady();
     }
+    return false;
   }
 
   //set content height
   void _setContentHeight(double height) {
     if (_contentHeight != height) {
       _contentHeight = height;
-      _checkReady();
     }
   }
 
-  //check ready
-  void _checkReady() {
-    if (_isTopReady()) {
-      notifyListeners();
-    }
+  //清空
+  void _clearHeight() {
+    _stickHeight = null;
+    _headHeight = null;
+    _contentHeight = null;
   }
 
   //top is ready
   bool _isTopReady() {
-    return _stickHeight != 0 && _headHeight != 0 && _contentHeight != 0;
+    return _stickHeight != null &&
+        _headHeight != null &&
+        _contentHeight != null;
   }
 
   //get head height
   double get headHeight {
-    return _headHeight;
+    return _headHeight ?? 0;
   }
 
   //get stick height
   double get stickHeight {
-    return _stickHeight;
+    return _stickHeight ?? 0;
   }
 
   //content height
   double get contentHeight {
-    return _contentHeight;
+    return _contentHeight ?? 0;
   }
 
   //get total height
   double get totalHeight {
-    return _headHeight + _stickHeight;
+    return headHeight + stickHeight;
   }
 }
 
@@ -194,18 +194,8 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
   final GlobalKey _contentKey = GlobalKey();
 
   @override
-  void initState() {
-    widget.controller.addListener(() async {
-      await Future.delayed(const Duration(milliseconds: 5));
-      if (mounted) {
-        setState(() {});
-      }
-    });
-    super.initState();
-  }
-
-  @override
   void didUpdateWidget(SmallStickPageView oldWidget) {
+    widget.controller._clearHeight();
     super.didUpdateWidget(oldWidget);
   }
 
@@ -225,7 +215,7 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
           onPointerUp: _handleTapUp,
           onPointerCancel: _handleTapUCancel,
           child: SingleChildScrollView(
-            controller: widget.controller.scrollController,
+            controller: widget.controller,
             physics: const ClampingScrollPhysics(),
             key: widget.controller.stickKey,
             clipBehavior: widget.clipBehavior,
@@ -234,7 +224,9 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
               children: [
                 ObserveWidget(
                   listener: (size) {
-                    widget.controller._setHeadHeight(size.height);
+                    if (widget.controller._setHeadHeight(size.height)) {
+                      setState(() {});
+                    }
                   },
                   child: SizedBox(
                     key: _headKey,
@@ -243,7 +235,9 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
                 ),
                 ObserveWidget(
                   listener: (size) {
-                    widget.controller._setStickHeight(size.height);
+                    if (widget.controller._setStickHeight(size.height)) {
+                      setState(() {});
+                    }
                   },
                   child: SizedBox(
                     key: _stickKey,
