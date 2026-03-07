@@ -110,13 +110,6 @@ class SmallStickPageViewController extends ScrollController {
     }
   }
 
-  //清空
-  void _clearHeight() {
-    _stickHeight = null;
-    _headHeight = null;
-    _contentHeight = null;
-  }
-
   //top is ready
   bool _isTopReady() {
     return _stickHeight != null &&
@@ -195,7 +188,6 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
 
   @override
   void didUpdateWidget(SmallStickPageView oldWidget) {
-    widget.controller._clearHeight();
     super.didUpdateWidget(oldWidget);
   }
 
