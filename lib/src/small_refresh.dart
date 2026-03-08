@@ -693,11 +693,10 @@ class SmallRefreshState extends State<SmallRefresh> {
   }
 
   //pull end
-  Future<void> _changeToRefreshing() async {
-    await Future.delayed(Duration(milliseconds: 5));
+  Future<void> _changeToRefreshing() {
     //if pulled out
     if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
-      await _refreshLock.synchronized(() async {
+      return _refreshLock.synchronized(() async {
         if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
           refreshStatus = RefreshStatus.refreshStatusRefreshing;
           await _changeToLoadEnd(true);
@@ -716,13 +715,14 @@ class SmallRefreshState extends State<SmallRefresh> {
     }
     //if not pulled out
     if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
-      await _refreshLock.synchronized(() {
+      return _refreshLock.synchronized(() {
         if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
           //just set state ,and the scroll controller resilience
           refreshStatus = RefreshStatus.refreshStatusEnded;
         }
       });
     }
+    return Future.value();
   }
 
   //start end animation
@@ -772,15 +772,16 @@ class SmallRefreshState extends State<SmallRefresh> {
   }
 
   //change to end anim
-  Future<void> _changeToEnd() async {
+  Future<void> _changeToEnd() {
     if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
-      await _refreshLock.synchronized(() {
+      return _refreshLock.synchronized(() {
         if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
           refreshStatus = RefreshStatus.refreshStatusEnded;
           widget.controller._isHideAnimating = false;
         }
       });
     }
+    return Future.value();
   }
 
   //loading
