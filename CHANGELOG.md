@@ -1,3 +1,3 @@
-## 1.0.24
+## 1.0.25
 
 - Change SmallStickPageViewController just extends ScrollController.

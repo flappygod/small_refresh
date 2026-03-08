@@ -4,7 +4,6 @@ import 'package:synchronized/synchronized.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'small_refresh_resize.dart';
-import 'small_refresh_space.dart';
 import 'small_stick_page.dart';
 import 'dart:math';
 
@@ -31,8 +30,6 @@ typedef SmallFooterHideStatusChangeListener = Function(
 
 ///duration time
 const int durationTime = 320;
-
-const double flingOffset = 20;
 
 ///small refresh action events
 enum SmallRefreshActionEvents {
@@ -333,12 +330,6 @@ class SmallRefreshState extends State<SmallRefresh> {
   Widget build(BuildContext context) {
     List<Widget> slivers = [];
 
-    //add top padding if nested need
-    Widget? nestedTop = _buildNestedTop();
-    if (nestedTop != null) {
-      slivers.add(nestedTop);
-    }
-
     //add top padding
     Widget? topPadding = _buildTopPadding();
     if (topPadding != null) {
@@ -368,12 +359,6 @@ class SmallRefreshState extends State<SmallRefresh> {
       slivers.add(bottomPadding);
     }
 
-    //for nested
-    Widget? nestedBottom = _buildNestedBottom();
-    if (nestedBottom != null) {
-      slivers.add(nestedBottom);
-    }
-
     return NotificationListener<ScrollNotification>(
       onNotification: _handleNotification,
       child: CustomScrollView(
@@ -394,18 +379,6 @@ class SmallRefreshState extends State<SmallRefresh> {
         BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         );
-  }
-
-  //nested padding
-  Widget? _buildNestedTop() {
-    if (widget.controller.stickController == null) {
-      return null;
-    }
-    return SliverToBoxAdapter(
-      child: SizedBox(
-        key: widget.controller._stickTopKey,
-      ),
-    );
   }
 
   //build top padding
@@ -470,19 +443,6 @@ class SmallRefreshState extends State<SmallRefresh> {
     return top;
   }
 
-  //bottom
-  Widget? _buildNestedBottom() {
-    if (widget.controller.stickController == null) {
-      return null;
-    }
-    return SliverToBoxAdapter(
-      child: SmallResizeWidget(
-        key: widget.controller._stickBtmKey,
-        controller: widget.controller._stickFlingBtmResizeController,
-      ),
-    );
-  }
-
   //handle notification
   bool _handleNotification(ScrollNotification notification) {
     if (notification.metrics.axis == Axis.horizontal) {
@@ -536,38 +496,6 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///when small refresh is  refresh animating ,do nothing
       if (widget.controller.isAnimating) {
         return;
-      }
-
-      ///start notification
-      if (notification is ScrollStartNotification) {
-        if (widget.controller._stickTopKey.currentContext?.findRenderObject() !=
-                null &&
-            widget.controller._stickBtmKey.currentContext?.findRenderObject() !=
-                null) {
-          RenderBox boxTop = widget.controller._stickTopKey.currentContext
-              ?.findRenderObject() as RenderBox;
-          RenderBox boxBtm = widget.controller._stickBtmKey.currentContext
-              ?.findRenderObject() as RenderBox;
-
-          Offset topOffset = boxTop.localToGlobal(Offset.zero);
-          Offset btmOffset = boxBtm.localToGlobal(Offset.zero);
-
-          ///content height
-          double contentHeight =
-              btmOffset.dy - topOffset.dy - boxTop.size.height;
-          double totalHeight =
-              widget.controller.position.context.storageContext.size?.height ??
-                  0;
-          double needHeight = totalHeight - contentHeight;
-
-          ///need height
-          if (needHeight < 0) {
-            widget.controller._stickFlingBtmResizeController.setHeight(0);
-          } else {
-            widget.controller._stickFlingBtmResizeController
-                .setHeight(needHeight);
-          }
-        }
       }
 
       ///if is scroll update
@@ -670,23 +598,28 @@ class SmallRefreshState extends State<SmallRefresh> {
       }
 
       ///can fling
-      if (notification is ScrollStartNotification) {
-        if (widget.controller.stickController!.offset > flingOffset) {
+      if (notification is ScrollStartNotification ||
+          notification is ScrollEndNotification) {
+        if (widget.controller.stickController!.offset > 0) {
           widget.controller.nestedHeadCanFlingFlag = true;
+        } else {
+          widget.controller.nestedHeadCanFlingFlag = false;
         }
         if (widget.controller.stickController!.offset <
-            widget.controller.stickController!.headHeight - flingOffset) {
+            widget.controller.stickController!.headHeight) {
           widget.controller.nestedFootCanFlingFlag = true;
+        } else {
+          widget.controller.nestedFootCanFlingFlag = false;
         }
       }
 
       ///set not fling
       if (notification is ScrollUpdateNotification) {
-        if (widget.controller.stickController!.offset <= flingOffset) {
+        if (widget.controller.stickController!.offset <= 0) {
           widget.controller.nestedHeadCanFlingFlag = false;
         }
         if (widget.controller.stickController!.offset >=
-            widget.controller.stickController!.headHeight - flingOffset) {
+            widget.controller.stickController!.headHeight) {
           widget.controller.nestedFootCanFlingFlag = false;
         }
       }
@@ -1057,15 +990,8 @@ class SmallRefreshController extends SmallRefreshScrollController {
   //top scale size widget
   SmallSizeWidgetController? _scaleWidgetController;
 
-  //resize controller
-  final SmallResizeWidgetController _stickFlingBtmResizeController =
-      SmallResizeWidgetController(0);
-
   //footer controller
   late HideShowController _footerController;
-
-  final GlobalKey _stickTopKey = GlobalKey();
-  final GlobalKey _stickBtmKey = GlobalKey();
 
   //out
   bool _nestedHeadCanFlingFlag = false;
