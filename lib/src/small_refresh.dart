@@ -247,16 +247,12 @@ class SmallRefreshState extends State<SmallRefresh> {
 
             ///set show animation and auto animation flag
             widget.controller._isShowAnimating = true;
-            widget.controller._isAutoAnimating = true;
-            Future future =
-                widget.controller._getCurrentScrollPosition().animateTo(
-                      -widget.header!.height,
-                      duration: const Duration(milliseconds: durationTime),
-                      curve: Curves.easeInOut,
-                    );
-            future.then((value) {
-              widget.controller._isShowAnimating = false;
-            });
+            widget.controller._getCurrentScrollPosition().animateTo(
+                  -widget.header!.height,
+                  duration: const Duration(milliseconds: durationTime),
+                  curve: Curves.easeInOut,
+                );
+            ;
           }
           break;
         case SmallRefreshActionEvents.refreshActionStop:
@@ -634,8 +630,10 @@ class SmallRefreshState extends State<SmallRefresh> {
     }
 
     ///drag interrupt
-    if (notification is ScrollUpdateNotification &&
-        notification.dragDetails != null) {
+    if ((notification is ScrollUpdateNotification &&
+            notification.dragDetails != null) ||
+        (notification is ScrollStartNotification &&
+            notification.dragDetails != null)) {
       _changeToInterrupt(scrollHeight);
     }
 
@@ -685,7 +683,6 @@ class SmallRefreshState extends State<SmallRefresh> {
   Future<void> _changeToInterrupt(double scrollHeight) async {
     //all animation set gone
     widget.controller._isHideAnimating = false;
-    widget.controller._isAutoAnimating = false;
     widget.controller._isShowAnimating = false;
     //change to end,if _status == RefreshStatus.Refresh_ANIMATION
     _changeToEnd();
@@ -698,6 +695,7 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
       await _refreshLock.synchronized(() async {
         if (_refreshStatus == RefreshStatus.refreshStatusPullOver) {
+          widget.controller._isShowAnimating = false;
           refreshStatus = RefreshStatus.refreshStatusRefreshing;
           await _changeToLoadEnd(true);
           Future future = widget.onRefresh!();
@@ -719,7 +717,6 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (_refreshStatus == RefreshStatus.refreshStatusPullAction) {
           //just set state ,and the scroll controller resilience
           refreshStatus = RefreshStatus.refreshStatusEnded;
-          widget.controller._isAutoAnimating = false;
         }
       });
     }
@@ -753,7 +750,6 @@ class SmallRefreshState extends State<SmallRefresh> {
                     widget.header!.height);
             //change to end directly
             refreshStatus = RefreshStatus.refreshStatusEnded;
-            widget.controller._isAutoAnimating = false;
             widget.controller._isHideAnimating = false;
           } else {
             //set refresh animation
@@ -774,12 +770,10 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //change to end anim
   Future<void> _changeToEnd() async {
-    await Future.delayed(Duration(milliseconds: 5));
     if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
       await _refreshLock.synchronized(() {
         if (_refreshStatus == RefreshStatus.refreshStatusEndAnimation) {
           refreshStatus = RefreshStatus.refreshStatusEnded;
-          widget.controller._isAutoAnimating = false;
           widget.controller._isHideAnimating = false;
         }
       });
@@ -1007,12 +1001,9 @@ class SmallRefreshController extends SmallRefreshScrollController {
   //is animating
   bool _isHideAnimating = false;
 
-  //is animating
-  bool _isAutoAnimating = false;
-
   //check is animate
   bool get isAnimating {
-    return _isShowAnimating || _isHideAnimating || _isAutoAnimating;
+    return _isShowAnimating || _isHideAnimating;
   }
 
   //lock
