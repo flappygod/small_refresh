@@ -19,6 +19,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   void setHeadCanFling() {
     if (_minScrollExtend != -_flingOffset) {
       _minScrollExtend = -_flingOffset;
+      _reconfigureAfterExtentChanged();
     }
   }
 
@@ -32,6 +33,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   void setFootCanFling() {
     if (_maxScrollExtend != _flingOffset) {
       _maxScrollExtend = _flingOffset;
+      _reconfigureAfterExtentChanged();
     }
   }
 
