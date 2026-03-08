@@ -99,7 +99,7 @@ class SmallStickPageViewController extends ScrollController
   }
 
   @override
-  bool get isStickRefresh => true;
+  bool get isStickRefresh => false;
 
   @override
   ScrollController get sc => this;

@@ -96,7 +96,7 @@ class SmallStickRefreshViewController extends SmallRefreshController
   }
 
   @override
-  bool get isStickRefresh => false;
+  bool get isStickRefresh => true;
 
   @override
   ScrollController get sc => this;

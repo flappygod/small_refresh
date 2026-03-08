@@ -564,33 +564,23 @@ class SmallRefreshState extends State<SmallRefresh> {
 
         ///pull down normal
         if (deltaA > 0 &&
-            widget.controller.stickController!.sc.offset > 0 &&
-            widget.controller.stickController!.sc.offset.round() <=
-                _getNestedScrollMax().round() &&
+            (widget.controller.stickController!.sc.offset > 0 || widget.controller._stickController!.isStickRefresh)&&
+            widget.controller.stickController!.sc.offset.round() <= _getNestedScrollMax().round() &&
             widget.controller.offset.round() < 0) {
-          double jumpTo =
-              widget.controller.stickController!.sc.offset - deltaA.abs();
-
-          ///check stick refresh
-          if (!widget.controller._stickController!.isStickRefresh) {
-            ///not fling
+          double jumpTo = widget.controller.stickController!.sc.offset - deltaA.abs();
+          if (widget.controller._stickController!.isStickRefresh) {
             if (jumpTo < 0) {
               widget.controller.nestedHeadCanFlingFlag = false;
             }
-
-            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             widget.controller.position.correctBy(-widget.controller.offset);
             widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           } else {
-            ///not fling
+            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             if (jumpTo < 0) {
               widget.controller.nestedHeadCanFlingFlag = false;
             }
-
-            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             widget.controller.position.correctBy(-widget.controller.offset);
-            widget.controller.stickController!.sc.position
-                .jumpTo((jumpTo < 0 ? 0 : jumpTo));
+            widget.controller.stickController!.sc.position.jumpTo((jumpTo < 0 ? 0 : jumpTo));
           }
         }
 
