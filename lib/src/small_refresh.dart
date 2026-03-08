@@ -255,6 +255,7 @@ class SmallRefreshState extends State<SmallRefresh> {
                       curve: Curves.easeInOut,
                     );
             future.then((value) {
+              _forceNestedCanScroll();
               widget.controller._isShowAnimating = false;
             });
           }
@@ -572,10 +573,6 @@ class SmallRefreshState extends State<SmallRefresh> {
         }
       }
 
-      if (notification is ScrollEndNotification) {
-        widget.controller.resetBallistic();
-      }
-
       ///set not fling
       if (notification is ScrollUpdateNotification) {
         if (widget.controller.stickController!.sc.offset <= 0) {
@@ -590,9 +587,9 @@ class SmallRefreshState extends State<SmallRefresh> {
   }
 
   //force not scroll
-  bool _forceNestedNotScroll() {
+  void _forceNestedNotScroll() {
     if (widget.controller.stickController == null) {
-      return false;
+      return;
     }
     if (widget.controller.stickController?.getCurrentChildController() ==
         widget.controller) {
@@ -600,7 +597,20 @@ class SmallRefreshState extends State<SmallRefresh> {
           ._getCurrentScrollPosition()
           .jumpTo(widget.controller._getCurrentScrollPosition().pixels);
     }
-    return true;
+    return;
+  }
+
+  //force not scroll
+  void _forceNestedCanScroll() {
+    if (widget.controller.stickController == null) {
+      return;
+    }
+    if (widget.controller.stickController?.getCurrentChildController() ==
+        widget.controller) {
+      widget.controller
+          ._getCurrentScrollPosition()
+          .jumpTo(widget.controller._getCurrentScrollPosition().pixels);
+    }
   }
 
   //head refresh

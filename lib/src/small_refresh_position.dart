@@ -19,32 +19,32 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   void setHeadCanFling() {
     if (_minScrollExtend != -_flingOffset) {
       _minScrollExtend = -_flingOffset;
-      resetBallistic();
+      _resetBallistic();
     }
   }
 
   void setHeadNotFling() {
     if (_minScrollExtend != 0) {
       _minScrollExtend = 0;
-      resetBallistic();
+      _resetBallistic();
     }
   }
 
   void setFootCanFling() {
     if (_maxScrollExtend != _flingOffset) {
       _maxScrollExtend = _flingOffset;
-      resetBallistic();
+      _resetBallistic();
     }
   }
 
   void setFootNotFling() {
     if (_maxScrollExtend != 0) {
       _maxScrollExtend = 0;
-      resetBallistic();
+      _resetBallistic();
     }
   }
 
-  void resetBallistic() {
+  void _resetBallistic() {
     //Clamp current pixels to the new extents immediately (especially when extents shrink).
     correctPixels(pixels);
 
