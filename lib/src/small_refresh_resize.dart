@@ -22,7 +22,7 @@ class SmallSizeWidgetController extends SmallRefreshBaseNotifier {
   double _scrollOffset = 0;
 
   //set total show flag
-  setSmallHeadShow(bool flag) {
+  void setSmallHeadShow(bool flag) {
     if (_showFlag != flag) {
       _showFlag = flag;
       notifyListeners();
@@ -30,7 +30,7 @@ class SmallSizeWidgetController extends SmallRefreshBaseNotifier {
   }
 
   //set scroll height
-  setScrollOffset(double offset) {
+  void setScrollOffset(double offset) {
     _scrollOffset = offset;
     notifyListeners();
   }
