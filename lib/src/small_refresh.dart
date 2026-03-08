@@ -757,6 +757,8 @@ class SmallRefreshState extends State<SmallRefresh> {
           } else {
             //set refresh animation
             refreshStatus = RefreshStatus.refreshStatusEndAnimation;
+            //set can fling to false
+            widget.controller.nestedHeadCanFlingFlag = false;
             //set hide animation
             widget.controller._isHideAnimating = true;
             //refresh end and jump for resilience
