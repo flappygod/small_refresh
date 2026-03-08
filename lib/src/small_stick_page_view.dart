@@ -1,10 +1,12 @@
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/material.dart';
+import 'small_stick_controller.dart';
 import 'small_refresh.dart';
 
 //notifier
-class SmallStickPageViewController extends ScrollController {
+class SmallStickPageViewController extends ScrollController
+    implements SmallStickController {
   //head height
   double? _headHeight;
 
@@ -40,6 +42,7 @@ class SmallStickPageViewController extends ScrollController {
   }
 
   ///register controllers add small refresh controller to stick controllers children
+  @override
   void registerChildController(SmallRefreshController refreshController) {
     _controllerLock.synchronized(() {
       _currentScrollController = refreshController;
@@ -50,6 +53,7 @@ class SmallStickPageViewController extends ScrollController {
   }
 
   ///unregister controllers,remove from stick controller
+  @override
   void unregisterChildController(SmallRefreshController scrollController) {
     _controllerLock.synchronized(() {
       _childScrollControllers.remove(scrollController);
@@ -57,16 +61,48 @@ class SmallStickPageViewController extends ScrollController {
   }
 
   ///get current effect child controller , only one controller can effect any time
+  @override
   SmallRefreshController? getCurrentChildController() {
     return _currentScrollController;
   }
 
   ///set current effect child controller
+  @override
   void setCurrentChildController(SmallRefreshController scrollController) {
     _controllerLock.synchronized(() {
       _currentScrollController = scrollController;
     });
   }
+
+  //get head height
+  @override
+  double get headHeight {
+    return _headHeight ?? 0;
+  }
+
+  //get stick height
+  @override
+  double get stickHeight {
+    return _stickHeight ?? 0;
+  }
+
+  //content height
+  @override
+  double get contentHeight {
+    return _contentHeight ?? 0;
+  }
+
+  //get total height
+  @override
+  double get totalHeight {
+    return headHeight + stickHeight;
+  }
+
+  @override
+  bool get isStickRefresh => true;
+
+  @override
+  ScrollController get sc => this;
 
   //stop flag
   bool _stopFlag = false;
@@ -115,26 +151,6 @@ class SmallStickPageViewController extends ScrollController {
     return _stickHeight != null &&
         _headHeight != null &&
         _contentHeight != null;
-  }
-
-  //get head height
-  double get headHeight {
-    return _headHeight ?? 0;
-  }
-
-  //get stick height
-  double get stickHeight {
-    return _stickHeight ?? 0;
-  }
-
-  //content height
-  double get contentHeight {
-    return _contentHeight ?? 0;
-  }
-
-  //get total height
-  double get totalHeight {
-    return headHeight + stickHeight;
   }
 }
 

@@ -1,10 +1,10 @@
 import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
+import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'small_refresh_resize.dart';
-import 'small_stick_page.dart';
 import 'dart:math';
 
 //call back
@@ -328,6 +328,14 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   @override
   Widget build(BuildContext context) {
+    //assert
+    assert(
+      !(widget.controller.stickController?.isStickRefresh ?? false) ||
+          (widget.header == null && widget.onRefresh == null),
+      'Invalid configuration: when stickController.isStickRefresh is true, '
+      '`header` and `onRefresh` must both be null (refresh is handled by the stick controller).',
+    );
+
     List<Widget> slivers = [];
 
     //add top padding
@@ -518,8 +526,8 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (isGesture &&
             deltaA > 0 &&
             isNoScrollSpace &&
-            widget.controller.stickController!.offset != 0) {
-          //pull down when scroll over
+            widget.controller.stickController!.sc.offset != 0) {
+          ///pull down when scroll over
           if (widget.controller._getCurrentScrollPosition().pixels - deltaA >
               0) {
             widget.controller._getCurrentScrollPosition().correctBy(-deltaA);
@@ -528,9 +536,13 @@ class SmallRefreshState extends State<SmallRefresh> {
 
           widget.controller._getCurrentScrollPosition().correctPixels(0);
           double jumpTo =
-              widget.controller.stickController!.position.pixels - deltaA;
-          jumpTo = jumpTo < 0 ? 0 : jumpTo;
-          widget.controller.stickController!.position.jumpTo(jumpTo);
+              widget.controller.stickController!.sc.position.pixels - deltaA;
+
+          ///check isStickRefresh
+          if (!widget.controller._stickController!.isStickRefresh) {
+            jumpTo = jumpTo < 0 ? 0 : jumpTo;
+          }
+          widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           return;
         }
 
@@ -539,37 +551,46 @@ class SmallRefreshState extends State<SmallRefresh> {
             deltaA < 0 &&
             isNoScrollSpace &&
             widget.controller.offset.round() > 0 &&
-            (widget.controller.stickController!.offset * 10).round() !=
+            (widget.controller.stickController!.sc.offset * 10).round() !=
                 (_getNestedScrollMax() * 10).round()) {
           widget.controller._getCurrentScrollPosition().correctPixels(0);
           double jumpTo =
-              widget.controller.stickController!.position.pixels - deltaA;
+              widget.controller.stickController!.sc.position.pixels - deltaA;
           jumpTo =
               jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
-          widget.controller.stickController!.position.jumpTo(jumpTo);
+          widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           return;
         }
 
         ///pull down normal
         if (deltaA > 0 &&
-            widget.controller.stickController!.offset > 0 &&
-            widget.controller.stickController!.offset.round() <=
+            widget.controller.stickController!.sc.offset > 0 &&
+            widget.controller.stickController!.sc.offset.round() <=
                 _getNestedScrollMax().round() &&
             widget.controller.offset.round() < 0) {
           double jumpTo =
-              widget.controller.stickController!.offset - deltaA.abs();
+              widget.controller.stickController!.sc.offset - deltaA.abs();
 
-          if (jumpTo < 0) {
+          ///check stick refresh
+          if (!widget.controller._stickController!.isStickRefresh) {
             ///not fling
-            widget.controller.nestedHeadCanFlingFlag = false;
+            if (jumpTo < 0) {
+              widget.controller.nestedHeadCanFlingFlag = false;
+            }
 
-            ///pull down jumped to 0
-            widget.controller.stickController!.position.jumpTo(0);
-          } else {
             ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             widget.controller.position.correctBy(-widget.controller.offset);
-            jumpTo = jumpTo < 0 ? 0 : jumpTo;
-            widget.controller.stickController!.position.jumpTo(jumpTo);
+            widget.controller.stickController!.sc.position.jumpTo(jumpTo);
+          } else {
+            ///not fling
+            if (jumpTo < 0) {
+              widget.controller.nestedHeadCanFlingFlag = false;
+            }
+
+            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
+            widget.controller.position.correctBy(-widget.controller.offset);
+            widget.controller.stickController!.sc.position
+                .jumpTo((jumpTo < 0 ? 0 : jumpTo));
           }
         }
 
@@ -577,22 +598,22 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (deltaA < 0 &&
             !isResilienceTop &&
             widget.controller.offset.round() > 0 &&
-            widget.controller.stickController!.offset.round() <
+            widget.controller.stickController!.sc.offset.round() <
                 _getNestedScrollMax().round()) {
           double jumpTo =
-              widget.controller.stickController!.position.pixels - deltaA;
+              widget.controller.stickController!.sc.position.pixels - deltaA;
 
           if (jumpTo > _getNestedScrollMax()) {
             ///pull up jumped to scroll max
             widget.controller.position.correctBy(-widget.controller.offset);
-            widget.controller.stickController!.position
+            widget.controller.stickController!.sc.position
                 .jumpTo(_getNestedScrollMax());
           } else {
             ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
             widget.controller.position.correctBy(-widget.controller.offset);
             jumpTo =
                 jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
-            widget.controller.stickController!.position.jumpTo(jumpTo);
+            widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           }
         }
       }
@@ -600,12 +621,12 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///can fling
       if (notification is ScrollStartNotification ||
           notification is ScrollEndNotification) {
-        if (widget.controller.stickController!.offset > 0) {
+        if (widget.controller.stickController!.sc.offset > 0) {
           widget.controller.nestedHeadCanFlingFlag = true;
         } else {
           widget.controller.nestedHeadCanFlingFlag = false;
         }
-        if (widget.controller.stickController!.offset <
+        if (widget.controller.stickController!.sc.offset <
             widget.controller.stickController!.headHeight) {
           widget.controller.nestedFootCanFlingFlag = true;
         } else {
@@ -615,10 +636,10 @@ class SmallRefreshState extends State<SmallRefresh> {
 
       ///set not fling
       if (notification is ScrollUpdateNotification) {
-        if (widget.controller.stickController!.offset <= 0) {
+        if (widget.controller.stickController!.sc.offset <= 0) {
           widget.controller.nestedHeadCanFlingFlag = false;
         }
-        if (widget.controller.stickController!.offset >=
+        if (widget.controller.stickController!.sc.offset >=
             widget.controller.stickController!.headHeight) {
           widget.controller.nestedFootCanFlingFlag = false;
         }
@@ -966,7 +987,7 @@ class SmallRefreshController extends SmallRefreshScrollController {
 
     //future two
     Future futureTwo = fatherTogether
-        ? (_stickController?.animateTo(
+        ? (_stickController?.sc.animateTo(
               0,
               duration: duration,
               curve: curve,
@@ -980,10 +1001,10 @@ class SmallRefreshController extends SmallRefreshScrollController {
   }
 
   //nested status
-  SmallStickPageViewController? _stickController;
+  SmallStickController? _stickController;
 
   //get stick controller
-  SmallStickPageViewController? get stickController {
+  SmallStickController? get stickController {
     return _stickController;
   }
 
@@ -1079,7 +1100,7 @@ class SmallRefreshController extends SmallRefreshScrollController {
 
   //start
   SmallRefreshController({
-    SmallStickPageViewController? stickController,
+    SmallStickController? stickController,
     HideShowStatus footerHideStatus = HideShowStatus.hide,
     super.debugLabel,
     super.initialScrollOffset,
