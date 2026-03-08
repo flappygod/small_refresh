@@ -19,47 +19,43 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
   void setHeadCanFling() {
     if (_minScrollExtend != -_flingOffset) {
       _minScrollExtend = -_flingOffset;
-      _reconfigureAfterExtentChanged();
+      resetBallistic();
     }
   }
 
   void setHeadNotFling() {
     if (_minScrollExtend != 0) {
       _minScrollExtend = 0;
-      _reconfigureAfterExtentChanged();
+      resetBallistic();
     }
   }
 
   void setFootCanFling() {
     if (_maxScrollExtend != _flingOffset) {
       _maxScrollExtend = _flingOffset;
-      _reconfigureAfterExtentChanged();
+      resetBallistic();
     }
   }
 
   void setFootNotFling() {
     if (_maxScrollExtend != 0) {
       _maxScrollExtend = 0;
-      _reconfigureAfterExtentChanged();
+      resetBallistic();
     }
   }
 
-  void _reconfigureAfterExtentChanged() {
+  void resetBallistic() {
     //Clamp current pixels to the new extents immediately (especially when extents shrink).
     correctPixels(pixels);
 
     //Do not interrupt an active drag; the new extents will be respected on release.
     if (activity is DragScrollActivity) {
-      notifyListeners();
       return;
     }
 
     //Re-run ballistic with the current activity velocity so the new extents take effect now.
     final v = activity?.velocity ?? 0.0;
     goBallistic(v);
-
-    //Notify dependents (e.g., Scrollbar/Controller listeners).
-    notifyListeners();
   }
 
   @override

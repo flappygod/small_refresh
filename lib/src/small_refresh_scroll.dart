@@ -41,6 +41,13 @@ class SmallRefreshScrollController extends ScrollController {
     }
   }
 
+  ///set foot not fling
+  void resetBallistic() {
+    if (position is SmallRefreshScrollPosition) {
+      (position as SmallRefreshScrollPosition).resetBallistic();
+    }
+  }
+
   @override
   ScrollPosition createScrollPosition(
     ScrollPhysics physics,
