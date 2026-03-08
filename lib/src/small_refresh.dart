@@ -958,9 +958,10 @@ class SmallRefreshController extends SmallRefreshScrollController {
     if (_stickController == null) {
       return;
     }
-    if (_nestedHeadCanFlingFlag != flag) {
-      _nestedHeadCanFlingFlag = flag;
+    if (_nestedHeadCanFlingFlag == flag) {
+      return;
     }
+    _nestedHeadCanFlingFlag = flag;
     if (_nestedHeadCanFlingFlag == true) {
       setHeadCanFling();
     } else {
