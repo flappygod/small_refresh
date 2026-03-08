@@ -573,7 +573,8 @@ class SmallRefreshState extends State<SmallRefresh> {
       }
 
       ///set not fling
-      if (notification is ScrollUpdateNotification) {
+      if (notification is ScrollUpdateNotification ||
+          notification is ScrollEndNotification) {
         if (widget.controller.stickController!.sc.offset <= 0) {
           widget.controller.nestedHeadCanFlingFlag = false;
         }
@@ -685,9 +686,6 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //change to pull out
   Future<void> _changeToInterrupt(double scrollHeight) async {
-    //all animation set gone
-    // widget.controller._isHideAnimating = false;
-    // widget.controller._isShowAnimating = false;
     //change to end,if _status == RefreshStatus.Refresh_ANIMATION
     _changeToEnd();
   }
