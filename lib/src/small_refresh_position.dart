@@ -46,7 +46,7 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
 
   void _resetBallistic() {
     //Clamp current pixels to the new extents immediately (especially when extents shrink).
-    correctPixels(pixels);
+    setPixels(pixels);
 
     //Do not interrupt an active drag; the new extents will be respected on release.
     if (activity is DragScrollActivity) {

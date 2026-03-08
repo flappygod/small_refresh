@@ -243,6 +243,7 @@ class SmallRefreshState extends State<SmallRefresh> {
 
             ///nested must not fling when refresh start
             widget.controller.nestedHeadCanFlingFlag = false;
+            widget.controller.nestedFootCanFlingFlag = false;
             _forceNestedNotScroll();
 
             ///set show animation and auto animation flag
@@ -739,6 +740,7 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (_refreshStatus == RefreshStatus.refreshStatusRefreshing) {
           //end anim must not fling
           widget.controller.nestedHeadCanFlingFlag = false;
+          widget.controller.nestedFootCanFlingFlag = false;
           //end anim must not scroll
           _forceNestedNotScroll();
           //check current position,if header is no longer show,just set status
@@ -759,6 +761,8 @@ class SmallRefreshState extends State<SmallRefresh> {
             refreshStatus = RefreshStatus.refreshStatusEndAnimation;
             //set can fling to false
             widget.controller.nestedHeadCanFlingFlag = false;
+            //set can fling to false
+            widget.controller.nestedFootCanFlingFlag = false;
             //set hide animation
             widget.controller._isHideAnimating = true;
             //refresh end and jump for resilience
@@ -915,6 +919,7 @@ class SmallRefreshController extends SmallRefreshScrollController {
 
     //father out remove top fling
     nestedHeadCanFlingFlag = false;
+    nestedFootCanFlingFlag = false;
 
     //future one
     Future futureOne = animateTo(
