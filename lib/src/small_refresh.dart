@@ -528,12 +528,10 @@ class SmallRefreshState extends State<SmallRefresh> {
           double jumpTo =
               widget.controller.stickController!.sc.offset - deltaA.abs();
           if (widget.controller._stickController!.isStickRefresh) {
-            widget.controller.position
-                .setPixels(widget.controller.position.pixels - deltaA);
+            widget.controller.position.correctBy(-deltaA);
             widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           } else {
-            widget.controller.position
-                .setPixels(widget.controller.position.pixels - deltaA);
+            widget.controller.position.correctBy(-deltaA);
             widget.controller.stickController!.sc.position
                 .jumpTo((jumpTo < 0 ? 0 : jumpTo));
           }
@@ -550,13 +548,12 @@ class SmallRefreshState extends State<SmallRefresh> {
 
           if (jumpTo > _getNestedScrollMax()) {
             ///pull up jumped to scroll max
-            widget.controller.position
-                .setPixels(widget.controller.position.pixels - deltaA);
+            widget.controller.position.correctBy(-deltaA);
             widget.controller.stickController!.sc.position
                 .jumpTo(_getNestedScrollMax());
           } else {
-            widget.controller.position
-                .setPixels(widget.controller.position.pixels - deltaA);
+            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
+            widget.controller.position.correctBy(-deltaA);
             jumpTo =
                 jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
             widget.controller.stickController!.sc.position.jumpTo(jumpTo);
