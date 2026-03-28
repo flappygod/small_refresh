@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
@@ -156,6 +159,9 @@ class SmallStickRefreshView extends StatefulWidget {
   //on refresh
   final SmallCallback onRefresh;
 
+  //Indicator builder
+  final IndicatorBuilder indicatorBuilder;
+
   //head view
   final Widget headView;
 
@@ -181,6 +187,7 @@ class SmallStickRefreshView extends StatefulWidget {
     required this.headView,
     required this.stickView,
     required this.body,
+    required this.indicatorBuilder,
     required this.onRefresh,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.clipBehavior = Clip.hardEdge,
@@ -223,8 +230,9 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
           onPointerDown: _handleTapDown,
           onPointerUp: _handleTapUp,
           onPointerCancel: _handleTapUCancel,
-          child: RefreshIndicator(
+          child: CustomRefreshIndicator(
             onRefresh: widget.onRefresh,
+            builder: widget.indicatorBuilder,
             child: CustomScrollView(
               key: widget.controller.stickKey,
               controller: widget.controller,
