@@ -655,19 +655,10 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (canPullDownLinkage) {
           ///先把子列表当前位置归零，避免子列表继续消费位移。
           widget.controller.position.correctBy(-widget.controller.offset);
-
           if (notification.dragDetails != null) {
             ///真实手势：通过 drag 代理给父列表。
             _startNestedParentDrag(_nestedParentDragStartDetails);
             _updateNestedParentDrag(notification.dragDetails!);
-          } else {
-            ///非手势阶段：保留 jumpTo 作为兜底。
-            double jumpTo =
-                widget.controller.stickController!.sc.offset - deltaA.abs();
-            if (!widget.controller._stickController!.isStickRefresh) {
-              jumpTo = jumpTo < 0 ? 0 : jumpTo;
-            }
-            widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           }
         }
 
@@ -675,19 +666,10 @@ class SmallRefreshState extends State<SmallRefresh> {
         if (canPullUpLinkage) {
           ///先把子列表当前位置归零，避免子列表继续消费位移。
           widget.controller.position.correctBy(-widget.controller.offset);
-
           if (notification.dragDetails != null) {
             ///真实手势：通过 drag 代理给父列表。
             _startNestedParentDrag(_nestedParentDragStartDetails);
             _updateNestedParentDrag(notification.dragDetails!);
-          } else {
-            ///非手势阶段：保留 jumpTo 作为兜底。
-            double jumpTo =
-                widget.controller.stickController!.sc.position.pixels - deltaA;
-            if (jumpTo > _getNestedScrollMax()) {
-              jumpTo = _getNestedScrollMax();
-            }
-            widget.controller.stickController!.sc.position.jumpTo(jumpTo);
           }
         }
 

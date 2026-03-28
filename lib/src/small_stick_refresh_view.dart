@@ -1,5 +1,4 @@
 import 'package:small_refresh/src/small_stick_controller.dart';
-import 'package:small_refresh/src/small_stick_indicator.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/material.dart';
@@ -234,7 +233,7 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
           onPointerDown: _handleTapDown,
           onPointerUp: _handleTapUp,
           onPointerCancel: _handleTapUCancel,
-          child: SmallStickRefreshIndicator(
+          child: RefreshIndicator(
             onRefresh: widget.onRefresh,
             color: widget.refreshColor,
             backgroundColor: widget.refreshBackgroundColor,
