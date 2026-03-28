@@ -1,7 +1,5 @@
-import 'dart:math' as math;
-
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:small_refresh/src/small_stick_controller.dart';
+import 'package:small_refresh/src/small_stick_indicator.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/material.dart';
@@ -159,8 +157,13 @@ class SmallStickRefreshView extends StatefulWidget {
   //on refresh
   final SmallCallback onRefresh;
 
-  //Indicator builder
-  final IndicatorBuilder indicatorBuilder;
+  /// The progress indicator's foreground color. The current theme's
+  /// [ColorScheme.primary] by default.
+  final Color? refreshColor;
+
+  /// The progress indicator's background color. The current theme's
+  /// [ThemeData.canvasColor] by default.
+  final Color? refreshBackgroundColor;
 
   //head view
   final Widget headView;
@@ -187,10 +190,11 @@ class SmallStickRefreshView extends StatefulWidget {
     required this.headView,
     required this.stickView,
     required this.body,
-    required this.indicatorBuilder,
     required this.onRefresh,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.clipBehavior = Clip.hardEdge,
+    this.refreshColor,
+    this.refreshBackgroundColor,
   }) : super(key: key);
 
   @override
@@ -230,9 +234,10 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
           onPointerDown: _handleTapDown,
           onPointerUp: _handleTapUp,
           onPointerCancel: _handleTapUCancel,
-          child: CustomRefreshIndicator(
+          child: SmallStickRefreshIndicator(
             onRefresh: widget.onRefresh,
-            builder: widget.indicatorBuilder,
+            color: widget.refreshColor,
+            backgroundColor: widget.refreshBackgroundColor,
             child: CustomScrollView(
               key: widget.controller.stickKey,
               controller: widget.controller,
