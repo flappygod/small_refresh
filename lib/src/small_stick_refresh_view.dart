@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'small_refresh.dart';
 
 //notifier
-class SmallStickRefreshViewController extends ScrollController implements SmallStickController {
+class SmallStickRefreshViewController extends ScrollController
+    implements SmallStickController {
   //head height
   double? _headHeight;
 
@@ -110,7 +111,8 @@ class SmallStickRefreshViewController extends ScrollController implements SmallS
 
   //stop current scroll
   void _stopCurrentScroll() {
-    if ((_currentScrollController?.positions.isNotEmpty ?? false) && _stopFlag == false) {
+    if ((_currentScrollController?.positions.isNotEmpty ?? false) &&
+        _stopFlag == false) {
       _stopFlag = true;
       _currentScrollController?.jumpTo(_currentScrollController?.offset ?? 0);
     }
@@ -143,7 +145,9 @@ class SmallStickRefreshViewController extends ScrollController implements SmallS
 
   //top is ready
   bool _isTopReady() {
-    return _stickHeight != null && _headHeight != null && _contentHeight != null;
+    return _stickHeight != null &&
+        _headHeight != null &&
+        _contentHeight != null;
   }
 }
 
@@ -255,7 +259,8 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
                 SliverToBoxAdapter(
                   child: SizedBox(
                     key: _contentKey,
-                    height: widget.controller.contentHeight - widget.controller.stickHeight,
+                    height: widget.controller.contentHeight -
+                        widget.controller.stickHeight,
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: widget.body,

@@ -1,9 +1,10 @@
+import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
-import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'small_refresh_resize.dart';
 import 'dart:math';
 
@@ -199,6 +200,15 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   //load end
   LoadStatus _loadStatus = LoadStatus.loadStatusEnd;
+
+  ///nested parent drag start details
+  DragStartDetails? _nestedParentDragStartDetails;
+
+  ///nested parent drag session
+  Drag? _nestedParentDrag;
+
+  ///whether nested is proxying drag to parent
+  bool _nestedParentDragging = false;
 
   ///set status and also update controllers refresh status
   set refreshStatus(RefreshStatus refreshStatus) {
@@ -473,115 +483,238 @@ class SmallRefreshState extends State<SmallRefresh> {
     return widget.controller.getNestedScrollMax();
   }
 
-  //handle nested
-  void _handleNotificationNested(ScrollNotification notification) {
-    //null return
-    if (widget.controller.stickController == null) {
+  ///父级可滚动对象的 ScrollPosition。
+  ///
+  ///这里的父级是 stickController 持有的外层 ScrollController。
+  ///当子列表滚动到边界后，会把真实拖拽事件转发给这个 position。
+  ScrollPosition? get _parentScrollPosition {
+    return widget.controller.stickController?.sc.position;
+  }
+
+  ///父级滚动控制器当前是否可用。
+  ///
+  ///只有父级 controller 存在且已经 attach 到可滚动组件后，
+  ///才允许创建 drag session。
+  bool get _hasParentScrollPosition {
+    final sc = widget.controller.stickController?.sc;
+    return sc != null && sc.hasClients;
+  }
+
+  ///父级 drag 被系统释放时的回调。
+  ///
+  ///这个回调会在 `position.drag(...)` 创建的 Drag 生命周期结束后触发，
+  ///用来清理当前缓存的 drag 状态。
+  void _disposeNestedParentDrag() {
+    _nestedParentDrag = null;
+    _nestedParentDragging = false;
+  }
+
+  ///开始一次“子滚动 -> 父滚动”的拖拽代理。
+  ///
+  ///当子列表滚动到边界，且后续拖拽应该交给父列表处理时，
+  ///通过父级 ScrollPosition 的 `drag(...)` 创建一个新的 drag session。
+  ///
+  ///[details] 优先使用子列表真实手势产生的 DragStartDetails，
+  ///这样父级滚动能尽量保持与用户手势一致的行为。
+  void _startNestedParentDrag(DragStartDetails? details) {
+    if (!_hasParentScrollPosition) return;
+    if (_nestedParentDrag != null) return;
+
+    final ScrollPosition position = _parentScrollPosition!;
+    _nestedParentDragStartDetails = details ?? DragStartDetails();
+    _nestedParentDrag = position.drag(
+      _nestedParentDragStartDetails!,
+      _disposeNestedParentDrag,
+    );
+    _nestedParentDragging = _nestedParentDrag != null;
+  }
+
+  ///将子列表当前这一次真实拖拽更新转发给父级 drag。
+  ///
+  ///只有在 `_startNestedParentDrag` 成功创建 drag session 后，
+  ///这个 update 才会真正生效。
+  void _updateNestedParentDrag(DragUpdateDetails details) {
+    _nestedParentDrag?.update(details);
+  }
+
+  ///正常结束一次父级 drag 代理。
+  ///
+  ///一般在收到 ScrollEndNotification 时调用，
+  ///让父级滚动完成一次完整的 drag -> end 生命周期。
+  void _endNestedParentDrag([DragEndDetails? details]) {
+    if (_nestedParentDrag == null) {
+      _nestedParentDragStartDetails = null;
+      _nestedParentDragging = false;
       return;
     }
-    //synchronized
+    _nestedParentDrag?.end(
+      details ?? DragEndDetails(primaryVelocity: 0),
+    );
+    _nestedParentDrag = null;
+    _nestedParentDragStartDetails = null;
+    _nestedParentDragging = false;
+  }
+
+  ///取消当前父级 drag 代理。
+  ///
+  ///一般用于以下场景：
+  ///- 当前子列表不再是激活的 child controller
+  ///- 外层主动禁止父子联动
+  ///- 当前处于刷新动画中，不允许继续联动
+  void _cancelNestedParentDrag() {
+    _nestedParentDrag?.cancel();
+    _nestedParentDrag = null;
+    _nestedParentDragStartDetails = null;
+    _nestedParentDragging = false;
+  }
+
+  ///处理子滚动与父滚动之间的联动逻辑。
+  ///
+  ///主要职责：
+  ///1. 在子列表滚动到边界时，把真实拖拽事件转发给父列表；
+  ///2. 在非手势滚动阶段，保留 jumpTo 作为兜底；
+  ///3. 维护 nestedHeadCanFlingFlag / nestedFootCanFlingFlag；
+  ///4. 在滚动结束或联动失效时，正确结束/取消父级 drag。
+  void _handleNotificationNested(ScrollNotification notification) {
+    ///没有父级 stickController 时，不需要处理联动。
+    if (widget.controller.stickController == null) {
+      _cancelNestedParentDrag();
+      return;
+    }
+
     _nestedLock.synchronized(() {
-      ///set current
-      if ((notification is ScrollStartNotification &&
-              notification.dragDetails != null) ||
-          (notification is ScrollUpdateNotification &&
-              notification.dragDetails != null)) {
+      ///记录当前正在交互的 child controller。
+      ///
+      ///只有真实手势触发的 start / update 才更新 current child，
+      ///避免非手势滚动干扰当前联动目标。
+      if (notification is ScrollStartNotification &&
+          notification.dragDetails != null) {
+        widget.controller.stickController!
+            .setCurrentChildController(widget.controller);
+        _nestedParentDragStartDetails = notification.dragDetails;
+      }
+
+      ///记录当前正在交互的 child controller。
+      if (notification is ScrollUpdateNotification &&
+          notification.dragDetails != null) {
         widget.controller.stickController!
             .setCurrentChildController(widget.controller);
       }
 
-      ///when nested locked by other scroll views
+      ///如果当前 child 已经不是激活的 child，取消父级 drag。
       if (widget.controller !=
           widget.controller.stickController?.getCurrentChildController()) {
+        _cancelNestedParentDrag();
         return;
       }
 
-      ///prevent rolling with parent
+      ///如果当前显式禁止父子联动，取消父级 drag。
       if (widget.controller._preventRollingWithParent) {
+        _cancelNestedParentDrag();
         return;
       }
 
-      ///when small refresh is  refresh animating ,do nothing
+      ///刷新显示/隐藏动画期间，不参与联动。
       if (widget.controller.isAnimating) {
+        _cancelNestedParentDrag();
         return;
       }
 
-      ///if is scroll update
+      ///处理滚动更新阶段的父子联动。
       if (notification is ScrollUpdateNotification) {
-        //get scroll delta
-        double deltaA = notification.dragDetails?.delta.dy ??
+        final double deltaA = notification.dragDetails?.delta.dy ??
             -(notification.scrollDelta ?? 0);
-        //check is user gesture
-        bool isGesture = (notification.dragDetails != null);
-        //top resilience
-        bool isResilienceTop = !isGesture &&
+
+        final bool isGesture = notification.dragDetails != null;
+
+        ///顶部回弹阶段的非手势更新。
+        ///
+        ///这种情况下通常不希望继续把“顶部回弹”当成正常上拉联动处理。
+        final bool isResilienceTop = !isGesture &&
             !widget.controller.nestedHeadCanFlingFlag &&
             widget.controller._getCurrentScrollPosition().pixels < 0;
 
-        ///pull down normal
-        if (deltaA > 0 &&
+        ///子列表继续下拉，但父列表顶部还有可回退空间时，
+        ///需要把拖拽交给父列表。
+        final bool canPullDownLinkage = deltaA > 0 &&
             (widget.controller.stickController!.sc.offset > 0 ||
                 widget.controller._stickController!.isStickRefresh) &&
             widget.controller.stickController!.sc.offset.round() <=
                 _getNestedScrollMax().round() &&
-            widget.controller.offset.round() < 0) {
-          double jumpTo =
-              widget.controller.stickController!.sc.offset - deltaA.abs();
-          if (widget.controller._stickController!.isStickRefresh) {
-            widget.controller.position.correctBy(-widget.controller.offset);
-            widget.controller.stickController!.sc.position.jumpTo(jumpTo);
-          } else {
-            widget.controller.position.correctBy(-widget.controller.offset);
-            widget.controller.stickController!.sc.position
-                .jumpTo((jumpTo < 0 ? 0 : jumpTo));
-          }
-        }
+            widget.controller.offset.round() < 0;
 
-        ///pull up normal
-        if (deltaA < 0 &&
+        ///子列表继续上推，但父列表还没滚到最大联动位置时，
+        ///需要把拖拽交给父列表。
+        final bool canPullUpLinkage = deltaA < 0 &&
             !isResilienceTop &&
             widget.controller.offset.round() > 0 &&
             widget.controller.stickController!.sc.offset.round() <
-                _getNestedScrollMax().round()) {
-          double jumpTo =
-              widget.controller.stickController!.sc.position.pixels - deltaA;
+                _getNestedScrollMax().round();
 
-          if (jumpTo > _getNestedScrollMax()) {
-            ///pull up jumped to scroll max
-            widget.controller.position.correctBy(-widget.controller.offset);
-            widget.controller.stickController!.sc.position
-                .jumpTo(_getNestedScrollMax());
+        ///下拉联动
+        if (canPullDownLinkage) {
+          ///先把子列表当前位置归零，避免子列表继续消费位移。
+          widget.controller.position.correctBy(-widget.controller.offset);
+
+          if (notification.dragDetails != null) {
+            ///真实手势：通过 drag 代理给父列表。
+            _startNestedParentDrag(_nestedParentDragStartDetails);
+            _updateNestedParentDrag(notification.dragDetails!);
           } else {
-            ///must use correctBy to avoid deltaA increase，this is correct to pixel zero
-            widget.controller.position.correctBy(-widget.controller.offset);
-            jumpTo =
-                jumpTo > _getNestedScrollMax() ? _getNestedScrollMax() : jumpTo;
+            ///非手势阶段：保留 jumpTo 作为兜底。
+            double jumpTo =
+                widget.controller.stickController!.sc.offset - deltaA.abs();
+            if (!widget.controller._stickController!.isStickRefresh) {
+              jumpTo = jumpTo < 0 ? 0 : jumpTo;
+            }
             widget.controller.stickController!.sc.position.jumpTo(jumpTo);
+          }
+        }
+
+        ///上拉联动
+        if (canPullUpLinkage) {
+          ///先把子列表当前位置归零，避免子列表继续消费位移。
+          widget.controller.position.correctBy(-widget.controller.offset);
+
+          if (notification.dragDetails != null) {
+            ///真实手势：通过 drag 代理给父列表。
+            _startNestedParentDrag(_nestedParentDragStartDetails);
+            _updateNestedParentDrag(notification.dragDetails!);
+          } else {
+            ///非手势阶段：保留 jumpTo 作为兜底。
+            double jumpTo =
+                widget.controller.stickController!.sc.position.pixels - deltaA;
+            if (jumpTo > _getNestedScrollMax()) {
+              jumpTo = _getNestedScrollMax();
+            }
+            widget.controller.stickController!.sc.position.jumpTo(jumpTo);
+          }
+        }
+
+        ///当前 update 已经不再满足联动条件时，结束父级 drag。
+        if (!canPullDownLinkage && !canPullUpLinkage) {
+          if (_nestedParentDragging) {
+            _endNestedParentDrag();
           }
         }
       }
 
-      ///can fling
-      if (notification is ScrollStartNotification) {
-        if (widget.controller.stickController!.sc.offset > 0) {
-          widget.controller.nestedHeadCanFlingFlag = true;
-        }
-        if (widget.controller.stickController!.sc.offset <
-            widget.controller.stickController!.headHeight) {
-          widget.controller.nestedFootCanFlingFlag = true;
-        }
+      ///根据滚动距离设置是否需要Fling
+      if (widget.controller.stickController!.sc.offset > 0) {
+        widget.controller.nestedHeadCanFlingFlag = true;
+      } else {
+        widget.controller.nestedHeadCanFlingFlag = false;
+      }
+      if (widget.controller.stickController!.sc.offset <
+          widget.controller.stickController!.headHeight) {
+        widget.controller.nestedFootCanFlingFlag = true;
+      } else {
+        widget.controller.nestedFootCanFlingFlag = false;
       }
 
-      ///set not fling
-      if (notification is ScrollUpdateNotification ||
-          notification is ScrollEndNotification) {
-        if (widget.controller.stickController!.sc.offset <= 0) {
-          widget.controller.nestedHeadCanFlingFlag = false;
-        }
-        if (widget.controller.stickController!.sc.offset >=
-            widget.controller.stickController!.headHeight) {
-          widget.controller.nestedFootCanFlingFlag = false;
-        }
+      ///手势结束时，结束父级 drag 生命周期。
+      if (notification is ScrollEndNotification) {
+        _endNestedParentDrag();
       }
     });
   }
@@ -867,7 +1000,7 @@ class SmallRefreshState extends State<SmallRefresh> {
   }
 }
 
-/// header base
+///header base
 abstract class SmallRefreshHeaderWidget extends StatefulWidget {
   ///controller
   final SmallRefreshController controller;
@@ -882,7 +1015,7 @@ abstract class SmallRefreshHeaderWidget extends StatefulWidget {
   }) : super(key: key);
 }
 
-/// footer base
+///footer base
 abstract class SmallRefreshFooterWidget extends StatefulWidget {
   ///controller
   final SmallRefreshController controller;
