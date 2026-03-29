@@ -165,6 +165,9 @@ class SmallStickRefreshView extends StatefulWidget {
   /// [ThemeData.canvasColor] by default.
   final Color? refreshBackgroundColor;
 
+  ///trigger mode
+  final RefreshIndicatorTriggerMode triggerMode;
+
   //head view
   final Widget headView;
 
@@ -191,6 +194,7 @@ class SmallStickRefreshView extends StatefulWidget {
     required this.stickView,
     required this.body,
     required this.onRefresh,
+    this.triggerMode = RefreshIndicatorTriggerMode.anywhere,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.clipBehavior = Clip.hardEdge,
     this.refreshColor,
@@ -237,6 +241,7 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
             color: widget.refreshColor,
+            triggerMode: widget.triggerMode,
             backgroundColor: widget.refreshBackgroundColor,
             child: CustomScrollView(
               key: widget.controller.stickKey,

@@ -1,5 +1,4 @@
-## 1.0.26
+## 1.0.27
 
-- Remove un need code.
-- Add SmallStickRefreshView. 
-- Bugs fixed.
+- Use the same physics in SmallStickPageView and SmallRefresh.
+- Add RefreshIndicatorTriggerMode for SmallStickRefreshView.
