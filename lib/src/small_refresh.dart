@@ -8,6 +8,8 @@ import 'package:flutter/gestures.dart';
 import 'small_refresh_resize.dart';
 import 'dart:math';
 
+const double topTolerance = 1;
+
 //call back
 typedef SmallCallback = Future<void> Function();
 
@@ -697,7 +699,7 @@ class SmallRefreshState extends State<SmallRefresh> {
               widget.controller._stickController!.isStickRefresh) &&
           widget.controller.stickController!.sc.offset.round() <=
               _getNestedScrollMax().round() &&
-          widget.controller.offset.round() < 0;
+          widget.controller.offset.round() <= topTolerance;
 
       ///子列表继续上推，但父列表还没滚到最大联动位置时，
       ///需要把拖拽交给父列表。
