@@ -1,4 +1,4 @@
-## 1.0.27
+## 1.0.28
 
-- Use the same physics in SmallStickPageView and SmallRefresh.
-- Add RefreshIndicatorTriggerMode for SmallStickRefreshView.
+- Add usage for SmallStickPageView and SmallStickRefreshView
+- Fix a resilence issue.
