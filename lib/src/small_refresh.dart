@@ -9,27 +9,28 @@ import 'package:flutter/gestures.dart';
 import 'small_refresh_resize.dart';
 import 'dart:math';
 
-const double topTolerance = 1;
+const double kTopTolerance = 1;
 
 //call back
 typedef SmallCallback = Future<void> Function();
 
 //refresh action listener
-typedef SmallRefreshActionListener = Function(SmallRefreshActionEvents events);
+typedef SmallRefreshActionListener = void Function(
+    SmallRefreshActionEvents events);
 
 //refresh load change listener
-typedef SmallLoadActionListener = Function(SmallLoadActionEvents events);
+typedef SmallLoadActionListener = void Function(SmallLoadActionEvents events);
 
 //refresh status change listener
-typedef SmallHeaderStatusChangeListener = Function(
+typedef SmallHeaderStatusChangeListener = void Function(
     SmallRefreshHeaderChangeEvents events);
 
 //refresh footer status change listener
-typedef SmallFooterStatusChangeListener = Function(
+typedef SmallFooterStatusChangeListener = void Function(
     SmallRefreshFooterChangeEvents events);
 
 //refresh footer hide change listener
-typedef SmallFooterHideStatusChangeListener = Function(
+typedef SmallFooterHideStatusChangeListener = void Function(
     SmallRefreshFooterHideEvents events);
 
 ///duration time
@@ -187,7 +188,7 @@ class SmallRefreshState extends State<SmallRefresh> {
   final Lock _loadLock = Lock();
 
   //height can show
-  final double _heightCanShow = 0.0001;
+  final double _minVisibleHeaderHeight = 0.0001;
 
   //refresh action listener
   late SmallRefreshActionListener _refreshActionListener;
@@ -235,7 +236,7 @@ class SmallRefreshState extends State<SmallRefresh> {
   void _initController() {
     ///create small size widget
     widget.controller._scaleWidgetController = SmallSizeWidgetController(
-      baseHeight: _heightCanShow,
+      baseHeight: _minVisibleHeaderHeight,
       innerHeight: widget.header != null ? widget.header!.height : 0,
     );
 
@@ -327,12 +328,11 @@ class SmallRefreshState extends State<SmallRefresh> {
   }
 
   @override
-  void didUpdateWidget(oldWidget) {
+  void didUpdateWidget(SmallRefresh oldWidget) {
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller._removeActionLoadListener(_loadActionListener);
       oldWidget.controller._removeActionRefreshListener(_refreshActionListener);
-      widget.controller._addActionLoadListener(_loadActionListener);
-      widget.controller._addActionRefreshListener(_refreshActionListener);
+      _initController();
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -346,12 +346,14 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   @override
   Widget build(BuildContext context) {
-    //assert
+    ///stick refresh
+    final bool isStickRefresh =
+        widget.controller.stickController?.isStickRefresh ?? false;
+
     assert(
-      !(widget.controller.stickController?.isStickRefresh ?? false) ||
-          (widget.header == null && widget.onRefresh == null),
+      !isStickRefresh || (widget.header == null && widget.onRefresh == null),
       'Invalid configuration: when stickController.isStickRefresh is true, '
-      '`header` and `onRefresh` must both be null (refresh is handled by the stick controller).',
+      '`header` and `onRefresh` must both be null.',
     );
 
     List<Widget> slivers = [];
@@ -412,12 +414,11 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.topPadding == 0) {
       return null;
     }
-    Widget top = SliverToBoxAdapter(
+    return SliverToBoxAdapter(
       child: SizedBox(
         height: widget.topPadding,
       ),
     );
-    return top;
   }
 
   //build top header
@@ -444,13 +445,12 @@ class SmallRefreshState extends State<SmallRefresh> {
   //build footer
   Widget? _buildBottomFooter() {
     if (widget.footer != null) {
-      Widget memFooter = SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: HideShowWidget(
           controller: widget.controller._footerController,
           child: widget.footer!,
         ),
       );
-      return memFooter;
     } else {
       return null;
     }
@@ -461,12 +461,11 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.bottomPadding == 0) {
       return null;
     }
-    Widget top = SliverToBoxAdapter(
+    return SliverToBoxAdapter(
       child: SizedBox(
         height: widget.bottomPadding,
       ),
     );
-    return top;
   }
 
   //handle notification
@@ -671,7 +670,7 @@ class SmallRefreshState extends State<SmallRefresh> {
     final double parentPixels = parentPosition.pixels;
 
     /// 子列表已经到顶（允许一点容差）
-    final bool childAtTop = childPixels <= topTolerance;
+    final bool childAtTop = childPixels <= kTopTolerance;
 
     /// 父列表还有可继续向下消费的空间
     final bool parentCanConsume = parentPixels > 0 ||
@@ -719,7 +718,7 @@ class SmallRefreshState extends State<SmallRefresh> {
     _nestedBallisticTransferredToParent = true;
 
     /// 先把子列表钉在顶部，避免继续抖动/越界
-    if (childPosition.pixels.abs() > topTolerance) {
+    if (childPosition.pixels.abs() > kTopTolerance) {
       childPosition.correctBy(-childPosition.pixels);
     }
 
@@ -750,8 +749,14 @@ class SmallRefreshState extends State<SmallRefresh> {
       _nestedBallisticTransferredToParent = false;
     }
 
+    ///滚动结束时，正常结束父级 drag 代理，并重置 ballistic transfer 标记。
+    if (notification is ScrollEndNotification) {
+      _endNestedParentDrag();
+      _nestedBallisticTransferredToParent = false;
+      return;
+    }
+
     ///记录当前正在交互的 child controller。
-    ///
     ///只有真实手势触发的 start / update 才更新 current child，
     ///避免非手势滚动干扰当前联动目标。
     if (notification is ScrollStartNotification &&
@@ -810,7 +815,7 @@ class SmallRefreshState extends State<SmallRefresh> {
               widget.controller._stickController!.isStickRefresh) &&
           widget.controller.stickController!.sc.offset.round() <=
               _getNestedScrollMax().round() &&
-          widget.controller.offset.round() <= topTolerance;
+          widget.controller.offset.round() <= kTopTolerance;
 
       ///子列表继续上推，但父列表还没滚到最大联动位置时，
       ///需要把拖拽交给父列表。
@@ -867,12 +872,6 @@ class SmallRefreshState extends State<SmallRefresh> {
       /// 兜底
       if (!canPullDownLinkage && !canPullUpLinkage) {
         _cancelNestedParentDrag();
-      }
-
-      ///滚动结束时，正常结束父级 drag 代理，并重置 ballistic transfer 标记。
-      if (notification is ScrollEndNotification) {
-        _endNestedParentDrag();
-        _nestedBallisticTransferredToParent = false;
       }
     }
   }
@@ -1088,6 +1087,9 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   ///change to loading
   Future<void> _changeToLoading(bool force) async {
+    if (widget.onLoad == null) {
+      return;
+    }
     if (force) {
       ///force to loading
       if (_loadStatus != LoadStatus.loadStatusLoading) {
@@ -1248,9 +1250,6 @@ class SmallRefreshController extends SmallRefreshScrollController {
     return _isShowAnimating || _isHideAnimating;
   }
 
-  //lock
-  Lock lock = Lock();
-
   ///refresh status
   RefreshStatus _refreshStatus = RefreshStatus.refreshStatusEnded;
 
@@ -1358,131 +1357,103 @@ class SmallRefreshController extends SmallRefreshScrollController {
   }
 
   ///action listeners
-  Future<void> startRefresh() {
-    return _notifyActionRefreshListener(
-        SmallRefreshActionEvents.refreshActionStart);
+  void startRefresh() {
+    _notifyActionRefreshListener(SmallRefreshActionEvents.refreshActionStart);
   }
 
-  Future<void> endRefresh() {
-    return _notifyActionRefreshListener(
-        SmallRefreshActionEvents.refreshActionStop);
+  void endRefresh() {
+    _notifyActionRefreshListener(SmallRefreshActionEvents.refreshActionStop);
   }
 
-  Future<void> startLoad() {
-    return _notifyActionLoadListener(SmallLoadActionEvents.loadActionStart);
+  void startLoad() {
+    _notifyActionLoadListener(SmallLoadActionEvents.loadActionStart);
   }
 
-  Future<void> endLoad() {
-    return _notifyActionLoadListener(SmallLoadActionEvents.loadActionEnd);
+  void endLoad() {
+    _notifyActionLoadListener(SmallLoadActionEvents.loadActionEnd);
   }
 
-  Future<void> stopLoad() {
-    return _notifyActionLoadListener(SmallLoadActionEvents.loadActionStop);
+  void stopLoad() {
+    _notifyActionLoadListener(SmallLoadActionEvents.loadActionStop);
   }
 
   ///drag progress listeners
-  Future<void> _refreshDragProgress(double progress) {
+  void _refreshDragProgress(double progress) {
     this.progress = progress;
-    return _notifyHeaderStatusChangeListener(
+    _notifyHeaderStatusChangeListener(
         SmallRefreshHeaderChangeEvents.refreshStateProgress);
   }
 
-  Future<void> _refreshDragProgressOver(double progress) {
+  void _refreshDragProgressOver(double progress) {
     this.progress = progress;
-    return _notifyHeaderStatusChangeListener(
+    _notifyHeaderStatusChangeListener(
         SmallRefreshHeaderChangeEvents.refreshStateProgressOver);
   }
 
   ///action listeners refresh
   void _addActionRefreshListener(SmallRefreshActionListener listener) {
-    lock.synchronized(() {
-      actionRefreshListeners.add(listener);
-    });
+    actionRefreshListeners.add(listener);
   }
 
   void _removeActionRefreshListener(SmallRefreshActionListener listener) {
-    lock.synchronized(() {
-      actionRefreshListeners.remove(listener);
-    });
+    actionRefreshListeners.remove(listener);
   }
 
-  Future _notifyActionRefreshListener(SmallRefreshActionEvents value) {
-    return lock.synchronized(() {
-      for (int s = 0; s < actionRefreshListeners.length; s++) {
-        SmallRefreshActionListener listener = actionRefreshListeners[s];
-        listener(value);
-      }
-    });
+  void _notifyActionRefreshListener(SmallRefreshActionEvents value) {
+    for (int s = 0; s < actionRefreshListeners.length; s++) {
+      SmallRefreshActionListener listener = actionRefreshListeners[s];
+      listener(value);
+    }
   }
 
   ///action listeners load
   void _addActionLoadListener(SmallLoadActionListener listener) {
-    lock.synchronized(() {
-      actionLoadListeners.add(listener);
-    });
+    actionLoadListeners.add(listener);
   }
 
   void _removeActionLoadListener(SmallLoadActionListener listener) {
-    lock.synchronized(() {
-      actionLoadListeners.remove(listener);
-    });
+    actionLoadListeners.remove(listener);
   }
 
-  Future _notifyActionLoadListener(SmallLoadActionEvents value) {
-    return lock.synchronized(() {
-      for (int s = 0; s < actionLoadListeners.length; s++) {
-        SmallLoadActionListener listener = actionLoadListeners[s];
-        listener(value);
-      }
-    });
+  void _notifyActionLoadListener(SmallLoadActionEvents value) {
+    for (int s = 0; s < actionLoadListeners.length; s++) {
+      SmallLoadActionListener listener = actionLoadListeners[s];
+      listener(value);
+    }
   }
 
   ///status listeners
   void addHeaderStatusChangeListener(SmallHeaderStatusChangeListener listener) {
-    lock.synchronized(() {
-      headerStatusListeners.add(listener);
-    });
+    headerStatusListeners.add(listener);
   }
 
   void removeHeaderStatusChangeListener(
       SmallHeaderStatusChangeListener listener) {
-    lock.synchronized(() {
-      headerStatusListeners.remove(listener);
-    });
+    headerStatusListeners.remove(listener);
   }
 
-  Future _notifyHeaderStatusChangeListener(
-      SmallRefreshHeaderChangeEvents value) {
-    return lock.synchronized(() {
-      for (int s = 0; s < headerStatusListeners.length; s++) {
-        SmallHeaderStatusChangeListener listener = headerStatusListeners[s];
-        listener(value);
-      }
-    });
+  void _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents value) {
+    for (int s = 0; s < headerStatusListeners.length; s++) {
+      SmallHeaderStatusChangeListener listener = headerStatusListeners[s];
+      listener(value);
+    }
   }
 
   ///footer status listeners
   void addFooterStatusChangeListener(SmallFooterStatusChangeListener listener) {
-    lock.synchronized(() {
-      footerStatusListeners.add(listener);
-    });
+    footerStatusListeners.add(listener);
   }
 
   void removeFooterStatusChangeListener(
       SmallFooterStatusChangeListener listener) {
-    lock.synchronized(() {
-      footerStatusListeners.remove(listener);
-    });
+    footerStatusListeners.remove(listener);
   }
 
-  Future _notifyFooterStatusChangeListener(
-      SmallRefreshFooterChangeEvents value) {
-    return lock.synchronized(() {
-      for (int s = 0; s < footerStatusListeners.length; s++) {
-        SmallFooterStatusChangeListener listener = footerStatusListeners[s];
-        listener(value);
-      }
-    });
+  void _notifyFooterStatusChangeListener(SmallRefreshFooterChangeEvents value) {
+    for (int s = 0; s < footerStatusListeners.length; s++) {
+      SmallFooterStatusChangeListener listener = footerStatusListeners[s];
+      listener(value);
+    }
   }
 
   //get scroll max
