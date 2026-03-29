@@ -831,7 +831,7 @@ class SmallRefreshState extends State<SmallRefresh> {
             notification.dragDetails,
           );
         } else {
-          ///手势一旦结束，将fling交给父列表
+          ///手势一旦结束，将fling交给父列表，子列表的继续滚动仍然将被correctBy拦住，直到canPullDownLinkage结束
           _endNestedParentDrag();
         }
       }
@@ -852,7 +852,7 @@ class SmallRefreshState extends State<SmallRefresh> {
             notification.dragDetails,
           );
         } else {
-          ///手势一旦结束，将fling交给父列表
+          ///手势一旦结束，将fling交给父列表，子列表的继续滚动仍然将被correctBy拦住，直到canPullUpLinkage结束
           _endNestedParentDrag();
         }
       }
