@@ -808,9 +808,16 @@ class SmallRefreshState extends State<SmallRefresh> {
       final bool isResilienceTop = !isGesture &&
           widget.controller._getCurrentScrollPosition().pixels < 0;
 
+      ///底部回弹阶段的非手势更新。
+      ///这种情况下通常不希望继续把“顶部回弹”当成正常上拉联动处理。
+      final bool isResilienceBtm = !isGesture &&
+          widget.controller._getCurrentScrollPosition().pixels >=
+              widget.controller._getCurrentScrollPosition().maxScrollExtent;
+
       ///子列表继续下拉，但父列表顶部还有可回退空间时，
       ///需要把拖拽交给父列表。
       final bool canPullDownLinkage = deltaA > 0 &&
+          !isResilienceBtm &&
           (widget.controller.stickController!.sc.offset > 0 ||
               widget.controller._stickController!.isStickRefresh) &&
           widget.controller.stickController!.sc.offset.round() <=
