@@ -546,16 +546,19 @@ class SmallRefreshState extends State<SmallRefresh> {
   ///这里的父级是 stickController 持有的外层 ScrollController。
   ///当子列表滚动到边界后，会把真实拖拽事件转发给这个 position。
   ScrollPosition? get _parentScrollPosition {
-    return widget.controller.stickController?.sc.position;
+    if (_parentHasScrollPosition) {
+      return widget.controller.stickController?.sc.position;
+    } else {
+      return null;
+    }
   }
 
   ///父级滚动控制器当前是否可用。
   ///
   ///只有父级 controller 存在且已经 attach 到可滚动组件后，
   ///才允许创建 drag session。
-  bool get _hasParentScrollPosition {
-    final sc = widget.controller.stickController?.sc;
-    return sc != null && sc.hasClients;
+  bool get _parentHasScrollPosition {
+    return widget.controller.stickController?.sc.hasClients ?? false;
   }
 
   ///父级 drag 被系统释放时的回调。
@@ -574,31 +577,46 @@ class SmallRefreshState extends State<SmallRefresh> {
   ///
   ///[details] 优先使用子列表真实手势产生的 DragStartDetails，
   ///这样父级滚动能尽量保持与用户手势一致的行为。
-  void _startNestedParentDrag(DragStartDetails? details) {
-    if (!_hasParentScrollPosition) return;
-    if (_nestedParentDrag != null) return;
-    _nestedParentDragStartDetails = details ?? DragStartDetails();
-    final ScrollPosition position = _parentScrollPosition!;
+  void _startNestedParentDrag() {
+    ///已经存在drag了不再继续响应
+    if (_nestedParentDrag != null) {
+      return;
+    }
+
+    ///获取父类的position
+    final ScrollPosition? position = _parentScrollPosition;
+    if (position == null) {
+      return;
+    }
+
+    ///创建drag
     _nestedParentDrag = position.drag(
-      _nestedParentDragStartDetails!,
+      _nestedParentDragStartDetails ?? DragStartDetails(),
       _disposeNestedParentDrag,
     );
-    _nestedParentDragging = _nestedParentDrag != null;
+
+    ///设置为true
+    _nestedParentDragging = true;
   }
 
   ///将子列表当前这一次真实拖拽更新转发给父级 drag。
   ///
   ///只有在 `_startNestedParentDrag` 成功创建 drag session 后，
   ///这个 update 才会真正生效。
-  void _updateNestedParentDrag(DragUpdateDetails details) {
-    _nestedParentDrag?.update(details);
+  void _updateNestedParentDrag(DragUpdateDetails? details) {
+    if (details != null) {
+      _nestedParentDrag?.update(details);
+    }
   }
 
   ///正常结束一次父级 drag 代理。
   ///
   ///一般在收到 ScrollEndNotification 时调用，
   ///让父级滚动完成一次完整的 drag -> end 生命周期。
-  void _endNestedParentDrag([DragEndDetails? details]) {
+  void _endNestedParentDrag() {
+    if (!_nestedParentDragging) {
+      return;
+    }
     if (_nestedParentDrag == null) {
       _nestedParentDragStartDetails = null;
       _nestedVelocityTracker = null;
@@ -606,7 +624,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       _lastComputedNestedVelocity = Velocity.zero;
       return;
     }
-    final DragEndDetails endDetails = details ?? _buildNestedDragEndDetails();
+    final DragEndDetails endDetails =  _buildNestedDragEndDetails();
     _nestedParentDrag?.end(endDetails);
     _nestedParentDrag = null;
     _nestedParentDragStartDetails = null;
@@ -632,12 +650,13 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   /// 当前是否允许把子列表的 ballistic/fling 转交给父列表
   bool _canTransferNestedBallisticToParent() {
-    if (widget.controller.stickController == null) {
+    ///保证parentPosition存在
+    final ScrollPosition? parentPosition = _parentScrollPosition;
+    if (parentPosition == null) {
       return false;
     }
-    if (!_hasParentScrollPosition) {
-      return false;
-    }
+
+    ///再次保证一下
     if (widget.controller !=
         widget.controller.stickController?.getCurrentChildController()) {
       return false;
@@ -648,9 +667,8 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (widget.controller.isAnimating) {
       return false;
     }
-
     final double childPixels = widget.controller.position.pixels;
-    final double parentPixels = _parentScrollPosition!.pixels;
+    final double parentPixels = parentPosition.pixels;
 
     /// 子列表已经到顶（允许一点容差）
     final bool childAtTop = childPixels <= topTolerance;
@@ -664,12 +682,17 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   /// 当子列表 fling 到顶部后，把剩余速度转交给父列表继续 fling
   void _transferNestedBallisticToParent() {
+    ///已经执行过了，不再重复
     if (_nestedBallisticTransferredToParent) {
       return;
     }
+
+    ///判断能否给到
     if (!_canTransferNestedBallisticToParent()) {
       return;
     }
+
+    ///check position type
     if (widget.controller.position is! SmallRefreshScrollPosition) {
       return;
     }
@@ -692,6 +715,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       return;
     }
 
+    /// 设置为true，已经执行
     _nestedBallisticTransferredToParent = true;
 
     /// 先把子列表钉在顶部，避免继续抖动/越界
@@ -767,13 +791,14 @@ class SmallRefreshState extends State<SmallRefresh> {
 
     ///处理滚动更新阶段的父子联动。
     if (notification is ScrollUpdateNotification) {
+      ///获取当前的deltaA
       final double deltaA = notification.dragDetails?.delta.dy ??
           -(notification.scrollDelta ?? 0);
 
+      ///判断是否是手势
       final bool isGesture = notification.dragDetails != null;
 
       ///顶部回弹阶段的非手势更新。
-      ///
       ///这种情况下通常不希望继续把“顶部回弹”当成正常上拉联动处理。
       final bool isResilienceTop = !isGesture &&
           widget.controller._getCurrentScrollPosition().pixels < 0;
@@ -801,27 +826,34 @@ class SmallRefreshState extends State<SmallRefresh> {
         widget.controller.position.correctBy(-widget.controller.offset);
         if (notification.dragDetails != null) {
           ///真实手势：通过 drag 代理给父列表。
-          _startNestedParentDrag(_nestedParentDragStartDetails);
-          _updateNestedParentDrag(notification.dragDetails!);
+          _startNestedParentDrag();
+          _updateNestedParentDrag(
+            notification.dragDetails,
+          );
         } else {
-          if (_nestedParentDragging) {
-            _endNestedParentDrag();
-          }
+          ///手势一旦结束，将fling交给父列表
+          _endNestedParentDrag();
         }
       }
 
       ///上拉联动
       if (canPullUpLinkage) {
-        ///先把子列表当前位置归零，避免子列表继续消费位移。
-        widget.controller.position.correctBy(deltaA);
+        ///先把子列表当前位置还原，避免子列表继续消费位移。
+        double pixels = widget.controller.position.pixels;
+        if (pixels + deltaA < 0) {
+          widget.controller.position.correctBy(-pixels);
+        } else {
+          widget.controller.position.correctBy(deltaA);
+        }
         if (notification.dragDetails != null) {
           ///真实手势：通过 drag 代理给父列表。
-          _startNestedParentDrag(_nestedParentDragStartDetails);
-          _updateNestedParentDrag(notification.dragDetails!);
+          _startNestedParentDrag();
+          _updateNestedParentDrag(
+            notification.dragDetails,
+          );
         } else {
-          if (_nestedParentDragging) {
-            _endNestedParentDrag();
-          }
+          ///手势一旦结束，将fling交给父列表
+          _endNestedParentDrag();
         }
       }
 
@@ -832,16 +864,14 @@ class SmallRefreshState extends State<SmallRefresh> {
         _transferNestedBallisticToParent();
       }
 
-      ///兜底
-      if (!canPullDownLinkage && !canPullUpLinkage && _nestedParentDragging) {
+      /// 兜底
+      if (!canPullDownLinkage && !canPullUpLinkage) {
         _cancelNestedParentDrag();
       }
 
       ///滚动结束时，正常结束父级 drag 代理，并重置 ballistic transfer 标记。
       if (notification is ScrollEndNotification) {
-        if (_nestedParentDragging) {
-          _endNestedParentDrag();
-        }
+        _endNestedParentDrag();
         _nestedBallisticTransferredToParent = false;
       }
     }
