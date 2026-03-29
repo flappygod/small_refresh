@@ -2,3 +2,4 @@
 
 - Remove un need code.
 - Add SmallStickRefreshView. 
+- Bugs fixed.
