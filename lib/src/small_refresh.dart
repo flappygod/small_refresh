@@ -770,6 +770,14 @@ class SmallRefreshState extends State<SmallRefresh> {
       final double deltaA = notification.dragDetails?.delta.dy ??
           -(notification.scrollDelta ?? 0);
 
+      final bool isGesture = notification.dragDetails != null;
+
+      ///顶部回弹阶段的非手势更新。
+      ///
+      ///这种情况下通常不希望继续把“顶部回弹”当成正常上拉联动处理。
+      final bool isResilienceTop = !isGesture &&
+          widget.controller._getCurrentScrollPosition().pixels < 0;
+
       ///子列表继续下拉，但父列表顶部还有可回退空间时，
       ///需要把拖拽交给父列表。
       final bool canPullDownLinkage = deltaA > 0 &&
@@ -782,6 +790,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///子列表继续上推，但父列表还没滚到最大联动位置时，
       ///需要把拖拽交给父列表。
       final bool canPullUpLinkage = deltaA < 0 &&
+          !isResilienceTop &&
           widget.controller.offset.round() > 0 &&
           widget.controller.stickController!.sc.offset.round() <
               _getNestedScrollMax().round();
@@ -804,7 +813,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       ///上拉联动
       if (canPullUpLinkage) {
         ///先把子列表当前位置归零，避免子列表继续消费位移。
-        widget.controller.position.correctBy(-deltaA);
+        widget.controller.position.correctBy(deltaA);
         if (notification.dragDetails != null) {
           ///真实手势：通过 drag 代理给父列表。
           _startNestedParentDrag(_nestedParentDragStartDetails);
@@ -819,7 +828,6 @@ class SmallRefreshState extends State<SmallRefresh> {
       /// 新增修复：
       /// 子列表在非手势 fling 过程中滚动到顶部后，
       /// 把剩余 ballistic 速度转交给父列表继续 fling。
-      final bool isGesture = notification.dragDetails != null;
       if (!isGesture) {
         _transferNestedBallisticToParent();
       }
