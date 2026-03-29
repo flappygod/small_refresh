@@ -624,7 +624,7 @@ class SmallRefreshState extends State<SmallRefresh> {
       _lastComputedNestedVelocity = Velocity.zero;
       return;
     }
-    final DragEndDetails endDetails =  _buildNestedDragEndDetails();
+    final DragEndDetails endDetails = _buildNestedDragEndDetails();
     _nestedParentDrag?.end(endDetails);
     _nestedParentDrag = null;
     _nestedParentDragStartDetails = null;
