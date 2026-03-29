@@ -1,3 +1,4 @@
+import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
@@ -5,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'small_refresh.dart';
 
 //notifier
-class SmallStickRefreshViewController extends ScrollController
+class SmallStickRefreshViewController extends SmallRefreshScrollController
     implements SmallStickController {
   //head height
   double? _headHeight;

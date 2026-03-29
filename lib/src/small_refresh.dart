@@ -1,3 +1,4 @@
+import 'package:small_refresh/src/small_refresh_position.dart';
 import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
@@ -214,6 +215,9 @@ class SmallRefreshState extends State<SmallRefresh> {
 
   /// cached latest vertical velocity during drag updates
   Velocity _lastComputedNestedVelocity = Velocity.zero;
+
+  /// 当前这次子 ballistic 是否已经转交给父级，避免重复触发
+  bool _nestedBallisticTransferredToParent = false;
 
   ///set status and also update controllers refresh status
   set refreshStatus(RefreshStatus refreshStatus) {
@@ -626,18 +630,93 @@ class SmallRefreshState extends State<SmallRefresh> {
     _lastComputedNestedVelocity = Velocity.zero;
   }
 
+  /// 当前是否允许把子列表的 ballistic/fling 转交给父列表
+  bool _canTransferNestedBallisticToParent() {
+    if (widget.controller.stickController == null) {
+      return false;
+    }
+    if (!_hasParentScrollPosition) {
+      return false;
+    }
+    if (widget.controller !=
+        widget.controller.stickController?.getCurrentChildController()) {
+      return false;
+    }
+    if (widget.controller._preventRollingWithParent) {
+      return false;
+    }
+    if (widget.controller.isAnimating) {
+      return false;
+    }
+
+    final double childPixels = widget.controller.position.pixels;
+    final double parentPixels = _parentScrollPosition!.pixels;
+
+    /// 子列表已经到顶（允许一点容差）
+    final bool childAtTop = childPixels <= topTolerance;
+
+    /// 父列表还有可继续向下消费的空间
+    final bool parentCanConsume = parentPixels > 0 ||
+        (widget.controller.stickController?.isStickRefresh ?? false);
+
+    return childAtTop && parentCanConsume;
+  }
+
+  /// 当子列表 fling 到顶部后，把剩余速度转交给父列表继续 fling
+  void _transferNestedBallisticToParent() {
+    if (_nestedBallisticTransferredToParent) {
+      return;
+    }
+    if (!_canTransferNestedBallisticToParent()) {
+      return;
+    }
+
+    final SmallRefreshScrollPosition childPosition =
+        widget.controller.position as SmallRefreshScrollPosition;
+    final SmallRefreshScrollPosition parentPosition =
+        _parentScrollPosition! as SmallRefreshScrollPosition;
+
+    /// 读取子列表当前 ballistic 速度
+    final double velocity = childPosition.getActivity()?.velocity ?? 0.0;
+
+    /// 这里只处理“向顶部方向回退”的 fling
+    /// 大多数情况下这个速度是负数；如果你实测方向相反，把判断改掉即可
+    if (velocity >= -10) {
+      return;
+    }
+
+    _nestedBallisticTransferredToParent = true;
+
+    /// 先把子列表钉在顶部，避免继续抖动/越界
+    if (childPosition.pixels.abs() > topTolerance) {
+      childPosition.correctBy(-childPosition.pixels);
+    }
+
+    /// 停掉子列表当前 ballistic
+    childPosition.flingBallistic(0);
+
+    /// 把剩余速度交给父列表
+    parentPosition.flingBallistic(velocity);
+  }
+
   ///处理子滚动与父滚动之间的联动逻辑。
   ///
   ///主要职责：
   ///1. 在子列表滚动到边界时，把真实拖拽事件转发给父列表；
-  ///2. 在非手势滚动阶段，保留 jumpTo 作为兜底；
-  ///3. 维护 nestedHeadCanFlingFlag / nestedFootCanFlingFlag；
+  ///2. 在子列表 fling 到顶部后，把剩余 ballistic 速度转交给父列表；
+  ///3. 维护 nested drag / ballistic transfer 状态；
   ///4. 在滚动结束或联动失效时，正确结束/取消父级 drag。
   void _handleNotificationNested(ScrollNotification notification) {
     ///没有父级 stickController 时，不需要处理联动。
     if (widget.controller.stickController == null) {
       _cancelNestedParentDrag();
+      _nestedBallisticTransferredToParent = false;
       return;
+    }
+
+    /// 新一轮滚动开始，重置 ballistic transfer 标记
+    if (notification is ScrollStartNotification) {
+      _nestedBallisticTransferredToParent = false;
     }
 
     ///记录当前正在交互的 child controller。
@@ -681,10 +760,12 @@ class SmallRefreshState extends State<SmallRefresh> {
 
     ///处理滚动更新阶段的父子联动。
     if (notification is ScrollUpdateNotification) {
+      final bool isGesture = notification.dragDetails != null;
+
+      /// 手势场景优先使用真实 drag delta
+      /// 非手势场景退化为 scrollDelta 推断方向
       final double deltaA = notification.dragDetails?.delta.dy ??
           -(notification.scrollDelta ?? 0);
-
-      final bool isGesture = notification.dragDetails != null;
 
       ///顶部回弹阶段的非手势更新。
       ///
@@ -694,55 +775,62 @@ class SmallRefreshState extends State<SmallRefresh> {
 
       ///子列表继续下拉，但父列表顶部还有可回退空间时，
       ///需要把拖拽交给父列表。
-      final bool canPullDownLinkage = deltaA > 0 &&
+      final bool canPullDownLinkage = isGesture &&
+          deltaA > 0 &&
           (widget.controller.stickController!.sc.offset > 0 ||
               widget.controller._stickController!.isStickRefresh) &&
           widget.controller.stickController!.sc.offset.round() <=
               _getNestedScrollMax().round() &&
-          widget.controller.offset.round() <= topTolerance;
+          widget.controller.offset <= topTolerance;
 
       ///子列表继续上推，但父列表还没滚到最大联动位置时，
       ///需要把拖拽交给父列表。
-      final bool canPullUpLinkage = deltaA < 0 &&
+      final bool canPullUpLinkage = isGesture &&
+          deltaA < 0 &&
           !isResilienceTop &&
-          widget.controller.offset.round() > 0 &&
+          widget.controller.offset > 0 &&
           widget.controller.stickController!.sc.offset.round() <
               _getNestedScrollMax().round();
 
-      ///下拉联动
+      ///下拉联动：真实手势转发给父级 drag
       if (canPullDownLinkage) {
         ///先把子列表当前位置归零，避免子列表继续消费位移。
-        widget.controller.position.correctBy(-widget.controller.offset);
-        if (notification.dragDetails != null) {
-          ///真实手势：通过 drag 代理给父列表。
-          _startNestedParentDrag(_nestedParentDragStartDetails);
-          _updateNestedParentDrag(notification.dragDetails!);
-        } else {
-          if (_nestedParentDragging) {
-            _endNestedParentDrag();
-          }
+        if (widget.controller.offset != 0) {
+          widget.controller.position.correctBy(-widget.controller.offset);
         }
+        _startNestedParentDrag(_nestedParentDragStartDetails);
+        _updateNestedParentDrag(notification.dragDetails!);
       }
 
-      ///上拉联动
+      ///上拉联动：真实手势转发给父级 drag
       if (canPullUpLinkage) {
         ///先把子列表当前位置归零，避免子列表继续消费位移。
-        widget.controller.position.correctBy(-widget.controller.offset);
-        if (notification.dragDetails != null) {
-          ///真实手势：通过 drag 代理给父列表。
-          _startNestedParentDrag(_nestedParentDragStartDetails);
-          _updateNestedParentDrag(notification.dragDetails!);
-        } else {
-          if (_nestedParentDragging) {
-            _endNestedParentDrag();
-          }
+        if (widget.controller.offset != 0) {
+          widget.controller.position.correctBy(-widget.controller.offset);
         }
+        _startNestedParentDrag(_nestedParentDragStartDetails);
+        _updateNestedParentDrag(notification.dragDetails!);
       }
 
-      ///兜底
+      /// 新增修复：
+      /// 子列表在非手势 fling 过程中滚动到顶部后，
+      /// 把剩余 ballistic 速度转交给父列表继续 fling。
+      if (!isGesture) {
+        _transferNestedBallisticToParent();
+      }
+
+      ///如果当前 update 不再需要联动，但父级 drag 还在，及时取消。
       if (!canPullDownLinkage && !canPullUpLinkage && _nestedParentDragging) {
         _cancelNestedParentDrag();
       }
+    }
+
+    ///滚动结束时，正常结束父级 drag 代理，并重置 ballistic transfer 标记。
+    if (notification is ScrollEndNotification) {
+      if (_nestedParentDragging) {
+        _endNestedParentDrag();
+      }
+      _nestedBallisticTransferredToParent = false;
     }
   }
 
