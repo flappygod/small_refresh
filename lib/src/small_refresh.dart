@@ -670,11 +670,18 @@ class SmallRefreshState extends State<SmallRefresh> {
     if (!_canTransferNestedBallisticToParent()) {
       return;
     }
+    if (widget.controller.position is! SmallRefreshScrollPosition) {
+      return;
+    }
+    if (_parentScrollPosition is! ScrollPositionWithSingleContext) {
+      return;
+    }
 
+    ///check
     final SmallRefreshScrollPosition childPosition =
         widget.controller.position as SmallRefreshScrollPosition;
-    final SmallRefreshScrollPosition parentPosition =
-        _parentScrollPosition! as SmallRefreshScrollPosition;
+    final ScrollPositionWithSingleContext parentPosition =
+        _parentScrollPosition as ScrollPositionWithSingleContext;
 
     /// 读取子列表当前 ballistic 速度
     final double velocity = childPosition.getActivity()?.velocity ?? 0.0;
@@ -693,10 +700,10 @@ class SmallRefreshState extends State<SmallRefresh> {
     }
 
     /// 停掉子列表当前 ballistic
-    childPosition.flingBallistic(0);
+    childPosition.goBallistic(0);
 
     /// 把剩余速度交给父列表
-    parentPosition.flingBallistic(velocity);
+    parentPosition.goBallistic(velocity);
   }
 
   ///处理子滚动与父滚动之间的联动逻辑。
