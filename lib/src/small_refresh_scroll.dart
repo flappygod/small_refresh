@@ -13,34 +13,6 @@ class SmallRefreshScrollController extends ScrollController {
           debugLabel: debugLabel,
         );
 
-  ///set head can fling
-  void setHeadCanFling() {
-    if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setHeadCanFling();
-    }
-  }
-
-  ///set head not fling
-  void setHeadNotFling() {
-    if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setHeadNotFling();
-    }
-  }
-
-  ///set foot can fling
-  void setFootCanFling() {
-    if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setFootCanFling();
-    }
-  }
-
-  ///set foot not fling
-  void setFootNotFling() {
-    if (position is SmallRefreshScrollPosition) {
-      (position as SmallRefreshScrollPosition).setFootNotFling();
-    }
-  }
-
   @override
   ScrollPosition createScrollPosition(
     ScrollPhysics physics,
