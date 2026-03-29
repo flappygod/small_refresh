@@ -524,6 +524,7 @@ class SmallRefreshState extends State<SmallRefresh> {
   ///构造 end details
   DragEndDetails _buildNestedDragEndDetails() {
     double vy = _lastComputedNestedVelocity.pixelsPerSecond.dy;
+
     ///太小的速度不认为是 fling
     final Velocity velocity = Velocity(
       pixelsPerSecond: Offset(0, vy),
