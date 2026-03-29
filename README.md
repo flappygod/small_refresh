@@ -10,7 +10,7 @@
 - 下拉刷新、上拉加载，与 `Sliver` 列表组合使用
 - 默认提供 `DefaultSmallRefreshHeader` / `DefaultSmallRefreshFooter`（依赖 `flutter_spinkit`）
 - 可继承 `SmallRefreshHeaderState` / `SmallRefreshFooterState`，或 `SmallRefreshHeaderWidget` / `SmallRefreshFooterWidget` 自行实现 UI
-- 提供粘性头部场景：`SmallStickRefreshView`、`SmallStickPageView` 等，与 `SmallStickRefreshViewController` 配合使用
+- 提供粘性头部场景：`SmallStickRefreshView`（外层 `RefreshIndicator`）与 `SmallStickPageView`（外层普通滚动），分别对应 `SmallStickRefreshViewController` / `SmallStickPageViewController`
 
 ## 环境要求
 
@@ -104,11 +104,91 @@ Widget buildRefresh() {
 
 具体可参考 `lib/src/small_refresh_header.dart`、`lib/src/small_refresh_footer.dart` 中的默认实现。
 
-### 粘性头部 + `RefreshIndicator`（`SmallStickRefreshView`）
+### 粘性布局：`SmallStickRefreshView` 与 `SmallStickPageView`
 
-顶部固定区域 + 中间可吸顶 + 下方可滚动内容时，可使用 `SmallStickRefreshView`，并配合 `SmallStickRefreshViewController`。支持 `RefreshIndicatorTriggerMode` 等参数（与 Material `RefreshIndicator` 行为一致）。
+两者都是「顶部区域 + 中间吸顶区域 + 下方内容区」三段布局，由各自的 `ScrollController` 测量 `headView` / `stickView` 高度，并与内层列表联动。区别如下：
 
-更多用法见仓库内 `example/` 示例工程。
+| 组件 | 外层滚动 | 外层下拉刷新 | 控制器 |
+|------|----------|--------------|--------|
+| `SmallStickRefreshView` | `CustomScrollView`（包在 `RefreshIndicator` 里） | 有，使用 `onRefresh` | `SmallStickRefreshViewController` |
+| `SmallStickPageView` | `SingleChildScrollView` + `Column` | 无 | `SmallStickPageViewController` |
+
+内层列表通常使用 **`SmallRefresh`**，并把 **`SmallRefreshController` 的 `stickController`** 设为外层的 stick 控制器，这样父子滚动会协同（例如吸顶后再滚内容）。
+
+#### 与内层 `SmallRefresh` 的约定（重要）
+
+`SmallStickRefreshViewController.isStickRefresh == true` 时，下拉由外层 `RefreshIndicator` 完成，内层 **`SmallRefresh` 不要再设置 `header` 和 `onRefresh`**（否则断言失败）。 Footer、`onLoad` 等仍可照常使用。
+
+`SmallStickPageViewController.isStickRefresh == false` 时，内层 **`SmallRefresh` 可以照常使用 `header`、`onRefresh`**。
+
+#### `SmallStickRefreshView` 示例
+
+```dart
+final SmallStickRefreshViewController _stickController =
+    SmallStickRefreshViewController();
+
+/// 内层列表用的控制器：把 stick 父级传进去
+late final SmallRefreshController _innerRefreshController =
+    SmallRefreshController(stickController: _stickController);
+
+@override
+Widget build(BuildContext context) {
+  return SmallStickRefreshView(
+    controller: _stickController,
+    headView: const YourHeadBanner(),
+    stickView: const YourStickyTabBar(),
+    triggerMode: RefreshIndicatorTriggerMode.anywhere,
+    refreshColor: Theme.of(context).colorScheme.primary,
+    onRefresh: () async {
+      await yourRefreshLogic();
+    },
+    body: SmallRefresh(
+      controller: _innerRefreshController,
+      // 外层已负责下拉刷新，这里必须为 null
+      header: null,
+      onRefresh: null,
+      footer: DefaultSmallRefreshFooter(controller: _innerRefreshController),
+      slivers: yourSlivers(),
+      onLoad: yourOnLoad,
+    ),
+  );
+}
+```
+
+#### `SmallStickPageView` 示例
+
+结构与上面类似，但**没有**外层 `onRefresh`；若需要下拉刷新，放在内层 `SmallRefresh` 即可。
+
+```dart
+final SmallStickPageViewController _stickController =
+    SmallStickPageViewController();
+
+late final SmallRefreshController _innerRefreshController =
+    SmallRefreshController(stickController: _stickController);
+
+@override
+Widget build(BuildContext context) {
+  return SmallStickPageView(
+    controller: _stickController,
+    headView: const YourHeadBanner(),
+    stickView: const YourStickyTabBar(),
+    body: SmallRefresh(
+      controller: _innerRefreshController,
+      header: DefaultSmallRefreshHeader(controller: _innerRefreshController),
+      footer: DefaultSmallRefreshFooter(controller: _innerRefreshController),
+      slivers: yourSlivers(),
+      onRefresh: () async {
+        await yourRefreshLogic();
+      },
+      onLoad: yourOnLoad,
+    ),
+  );
+}
+```
+
+`crossAxisAlignment`、`clipBehavior` 等参数在两处 widget 上含义一致，可按布局需要调整。
+
+更多用法可参考仓库内 `example/` 示例工程。
 
 ## 主要导出
 
@@ -119,8 +199,9 @@ Widget buildRefresh() {
 | `SmallRefresh` | 主刷新容器，接收 `slivers`、`onRefresh`、`onLoad` 等 |
 | `SmallRefreshController` | 控制刷新/加载状态、与默认头尾联动 |
 | `DefaultSmallRefreshHeader` / `DefaultSmallRefreshFooter` | 默认头、尾 |
-| `SmallStickRefreshView` / `SmallStickRefreshViewController` | 粘性头部场景的滚动与刷新 |
-| `SmallStickPageView` | 与粘性 Tab/分页相关的页面视图 |
+| `SmallStickRefreshView` / `SmallStickRefreshViewController` | 粘性三段布局 + 外层 `RefreshIndicator` |
+| `SmallStickPageView` / `SmallStickPageViewController` | 粘性三段布局 + 外层 `SingleChildScrollView`（无内置下拉） |
+| `SmallStickController` | 抽象类型，上述两个 Controller 均实现，用于传给 `SmallRefreshController(stickController: …)` |
 
 完整列表以 `lib/small_refresh.dart` 的 `export` 为准。
 
