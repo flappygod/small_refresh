@@ -1,3 +1,4 @@
+import 'package:small_refresh/src/small_refresh_scroll.dart';
 import 'package:small_refresh/src/small_stick_controller.dart';
 import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
@@ -5,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'small_refresh.dart';
 
 //notifier
-class SmallStickRefreshViewController extends SmallRefreshController
+class SmallStickRefreshViewController extends SmallRefreshScrollController
     implements SmallStickController {
   //head height
   double? _headHeight;
@@ -153,20 +154,19 @@ class SmallStickRefreshViewController extends SmallRefreshController
 
 //stick page view
 class SmallStickRefreshView extends StatefulWidget {
-  //refresh head
-  final SmallRefreshHeaderWidget? refreshHeader;
-
-  //refresh first time
-  final bool refreshFirstLoad;
-
   //on refresh
-  final SmallCallback? onRefresh;
+  final SmallCallback onRefresh;
 
-  //top padding
-  final double topPadding;
+  /// The progress indicator's foreground color. The current theme's
+  /// [ColorScheme.primary] by default.
+  final Color? refreshColor;
 
-  //bottom padding
-  final double bottomPadding;
+  /// The progress indicator's background color. The current theme's
+  /// [ThemeData.canvasColor] by default.
+  final Color? refreshBackgroundColor;
+
+  ///trigger mode
+  final RefreshIndicatorTriggerMode triggerMode;
 
   //head view
   final Widget headView;
@@ -189,17 +189,16 @@ class SmallStickRefreshView extends StatefulWidget {
   //stick page view
   const SmallStickRefreshView({
     Key? key,
+    required this.controller,
+    required this.headView,
     required this.stickView,
     required this.body,
-    required this.headView,
-    required this.controller,
+    required this.onRefresh,
+    this.triggerMode = RefreshIndicatorTriggerMode.anywhere,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.clipBehavior = Clip.hardEdge,
-    this.refreshFirstLoad = false,
-    this.refreshHeader,
-    this.onRefresh,
-    this.topPadding = 0,
-    this.bottomPadding = 0,
+    this.refreshColor,
+    this.refreshBackgroundColor,
   }) : super(key: key);
 
   @override
@@ -239,54 +238,55 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
           onPointerDown: _handleTapDown,
           onPointerUp: _handleTapUp,
           onPointerCancel: _handleTapUCancel,
-          child: SmallRefresh(
-            controller: widget.controller,
-            key: widget.controller.stickKey,
-            clipBehavior: widget.clipBehavior,
-            header: widget.refreshHeader,
-            firstRefresh: widget.refreshFirstLoad,
+          child: RefreshIndicator(
             onRefresh: widget.onRefresh,
-            topPadding: widget.topPadding,
-            bottomPadding: widget.bottomPadding,
-            slivers: [
-              SliverToBoxAdapter(
-                child: ObserveWidget(
-                  listener: (size) {
-                    if (widget.controller._setHeadHeight(size.height)) {
-                      setState(() {});
-                    }
-                  },
+            color: widget.refreshColor,
+            triggerMode: widget.triggerMode,
+            backgroundColor: widget.refreshBackgroundColor,
+            child: CustomScrollView(
+              key: widget.controller.stickKey,
+              controller: widget.controller,
+              clipBehavior: widget.clipBehavior,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: ObserveWidget(
+                    listener: (size) {
+                      if (widget.controller._setHeadHeight(size.height)) {
+                        setState(() {});
+                      }
+                    },
+                    child: SizedBox(
+                      key: _headKey,
+                      child: widget.headView,
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: ObserveWidget(
+                    listener: (size) {
+                      if (widget.controller._setStickHeight(size.height)) {
+                        setState(() {});
+                      }
+                    },
+                    child: SizedBox(
+                      key: _stickKey,
+                      child: widget.stickView,
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
                   child: SizedBox(
-                    key: _headKey,
-                    child: widget.headView,
+                    key: _contentKey,
+                    height: widget.controller.contentHeight -
+                        widget.controller.stickHeight,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: widget.body,
+                    ),
                   ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: ObserveWidget(
-                  listener: (size) {
-                    if (widget.controller._setStickHeight(size.height)) {
-                      setState(() {});
-                    }
-                  },
-                  child: SizedBox(
-                    key: _stickKey,
-                    child: widget.stickView,
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  key: _contentKey,
-                  height: widget.controller.contentHeight -
-                      widget.controller.stickHeight,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: widget.body,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

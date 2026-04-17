@@ -224,7 +224,9 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
           onPointerCancel: _handleTapUCancel,
           child: SingleChildScrollView(
             controller: widget.controller,
-            physics: const ClampingScrollPhysics(),
+            physics: BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
             key: widget.controller.stickKey,
             clipBehavior: widget.clipBehavior,
             child: Column(

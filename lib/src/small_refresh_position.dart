@@ -2,11 +2,6 @@ import 'package:flutter/cupertino.dart';
 
 ///negatived scroll position
 class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
-  ///min scroll extend
-  double _minScrollExtend = 0;
-  double _maxScrollExtend = 0;
-  final double _flingOffset = 25;
-
   SmallRefreshScrollPosition({
     required super.physics,
     required super.context,
@@ -16,51 +11,20 @@ class SmallRefreshScrollPosition extends ScrollPositionWithSingleContext {
     super.debugLabel,
   });
 
-  void setHeadCanFling() {
-    if (_minScrollExtend != -_flingOffset) {
-      _minScrollExtend = -_flingOffset;
-      _resetBallistic();
-    }
-  }
-
-  void setHeadNotFling() {
-    if (_minScrollExtend != 0) {
-      _minScrollExtend = 0;
-      _resetBallistic();
-    }
-  }
-
-  void setFootCanFling() {
-    if (_maxScrollExtend != _flingOffset) {
-      _maxScrollExtend = _flingOffset;
-      _resetBallistic();
-    }
-  }
-
-  void setFootNotFling() {
-    if (_maxScrollExtend != 0) {
-      _maxScrollExtend = 0;
-      _resetBallistic();
-    }
-  }
-
-  void _resetBallistic() {
+  ///fling ballistic
+  void flingBallistic(double velocity) {
     //Clamp current pixels to the new extents immediately (especially when extents shrink).
     setPixels(pixels);
-
     //Do not interrupt an active drag; the new extents will be respected on release.
     if (activity is DragScrollActivity) {
       return;
     }
-
     //Re-run ballistic with the current activity velocity so the new extents take effect now.
-    final v = activity?.velocity ?? 0.0;
-    goBallistic(v);
+    goBallistic(velocity);
   }
 
-  @override
-  double get minScrollExtent => _minScrollExtend;
-
-  @override
-  double get maxScrollExtent => super.maxScrollExtent + _maxScrollExtend;
+  ///get activity
+  ScrollActivity? getActivity() {
+    return activity;
+  }
 }

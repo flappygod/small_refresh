@@ -1,4 +1,4 @@
-## 1.0.26
+## 1.0.28
 
-- Remove un need code.
-- Add SmallStickRefreshView. 
+- Add usage for SmallStickPageView and SmallStickRefreshView
+- Fix a resilence issue.
