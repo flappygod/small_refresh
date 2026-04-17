@@ -1,4 +1,3 @@
-## 1.0.28
+## 1.0.29
 
-- Add usage for SmallStickPageView and SmallStickRefreshView
-- Fix a resilence issue.
+- Code checked by Ai and add some protection.
