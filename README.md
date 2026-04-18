@@ -87,7 +87,7 @@ Widget buildRefresh() {
         }
         setState(() {});
       } else {
-        _refreshController.footerEnd();
+        _refreshController.stopLoad();
         setState(() {});
       }
     },

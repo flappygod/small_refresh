@@ -140,6 +140,9 @@ class _SmallSizeWidgetState extends State<SmallSizeWidget> {
 
   @override
   void dispose() {
+    if (_listener != null) {
+      widget.controller.removeListener(_listener!);
+    }
     super.dispose();
   }
 

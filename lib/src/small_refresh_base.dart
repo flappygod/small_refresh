@@ -8,8 +8,11 @@ class SmallRefreshBaseNotifier extends Listenable {
 
   //notify all listeners
   void notifyListeners() {
-    for (int s = 0; s < _listeners.length; s++) {
-      _listeners[s]();
+    ///iterate over a snapshot so listeners can safely
+    ///add/remove listeners during dispatch
+    final List<VoidCallback> snapshot = List<VoidCallback>.of(_listeners);
+    for (int s = 0; s < snapshot.length; s++) {
+      snapshot[s]();
     }
   }
 
@@ -232,9 +235,10 @@ class HideShowController {
 
   ///notify
   void _notify() {
-    for (int s = 0; s < _hideShowListeners.length; s++) {
-      VoidCallback listener = _hideShowListeners[s];
-      listener();
+    final List<VoidCallback> snapshot =
+        List<VoidCallback>.of(_hideShowListeners);
+    for (int s = 0; s < snapshot.length; s++) {
+      snapshot[s]();
     }
   }
 

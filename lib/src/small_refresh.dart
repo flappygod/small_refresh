@@ -29,10 +29,6 @@ typedef SmallHeaderStatusChangeListener = void Function(
 typedef SmallFooterStatusChangeListener = void Function(
     SmallRefreshFooterChangeEvents events);
 
-//refresh footer hide change listener
-typedef SmallFooterHideStatusChangeListener = void Function(
-    SmallRefreshFooterHideEvents events);
-
 ///duration time
 const int durationTime = 320;
 
@@ -75,12 +71,6 @@ enum RefreshStatus {
   refreshStatusEnded,
 }
 
-///footer status
-enum FooterHideStatus {
-  footerHide,
-  footerShow,
-}
-
 ///refresh status change
 enum SmallRefreshHeaderChangeEvents {
   //refresh state change notify (when state changed)
@@ -98,12 +88,6 @@ enum SmallRefreshFooterChangeEvents {
   loadEventsStart,
   loadEventsEnd,
   loadEventsStopped,
-}
-
-///load state change notify
-enum SmallRefreshFooterHideEvents {
-  footerEventHide,
-  footerEventShow,
 }
 
 class SmallRefresh extends StatefulWidget {
@@ -1407,9 +1391,10 @@ class SmallRefreshController extends SmallRefreshScrollController {
   }
 
   void _notifyActionRefreshListener(SmallRefreshActionEvents value) {
-    for (int s = 0; s < actionRefreshListeners.length; s++) {
-      SmallRefreshActionListener listener = actionRefreshListeners[s];
-      listener(value);
+    final List<SmallRefreshActionListener> snapshot =
+        List<SmallRefreshActionListener>.of(actionRefreshListeners);
+    for (int s = 0; s < snapshot.length; s++) {
+      snapshot[s](value);
     }
   }
 
@@ -1423,9 +1408,10 @@ class SmallRefreshController extends SmallRefreshScrollController {
   }
 
   void _notifyActionLoadListener(SmallLoadActionEvents value) {
-    for (int s = 0; s < actionLoadListeners.length; s++) {
-      SmallLoadActionListener listener = actionLoadListeners[s];
-      listener(value);
+    final List<SmallLoadActionListener> snapshot =
+        List<SmallLoadActionListener>.of(actionLoadListeners);
+    for (int s = 0; s < snapshot.length; s++) {
+      snapshot[s](value);
     }
   }
 
@@ -1440,9 +1426,10 @@ class SmallRefreshController extends SmallRefreshScrollController {
   }
 
   void _notifyHeaderStatusChangeListener(SmallRefreshHeaderChangeEvents value) {
-    for (int s = 0; s < headerStatusListeners.length; s++) {
-      SmallHeaderStatusChangeListener listener = headerStatusListeners[s];
-      listener(value);
+    final List<SmallHeaderStatusChangeListener> snapshot =
+        List<SmallHeaderStatusChangeListener>.of(headerStatusListeners);
+    for (int s = 0; s < snapshot.length; s++) {
+      snapshot[s](value);
     }
   }
 
@@ -1457,15 +1444,16 @@ class SmallRefreshController extends SmallRefreshScrollController {
   }
 
   void _notifyFooterStatusChangeListener(SmallRefreshFooterChangeEvents value) {
-    for (int s = 0; s < footerStatusListeners.length; s++) {
-      SmallFooterStatusChangeListener listener = footerStatusListeners[s];
-      listener(value);
+    final List<SmallFooterStatusChangeListener> snapshot =
+        List<SmallFooterStatusChangeListener>.of(footerStatusListeners);
+    for (int s = 0; s < snapshot.length; s++) {
+      snapshot[s](value);
     }
   }
 
   //get scroll max
   double getNestedScrollMax() {
-    return stickController!.headHeight;
+    return stickController?.headHeight ?? 0;
   }
 
   //get current controller scroll position
