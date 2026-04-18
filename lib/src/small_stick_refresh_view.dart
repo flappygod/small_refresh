@@ -4,6 +4,7 @@ import 'package:small_refresh/src/small_refresh_base.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:flutter/material.dart';
 import 'small_refresh.dart';
+import 'dart:math';
 
 //notifier
 class SmallStickRefreshViewController extends SmallRefreshScrollController
@@ -277,8 +278,11 @@ class _SmallStickRefreshViewState extends State<SmallStickRefreshView> {
                 SliverToBoxAdapter(
                   child: SizedBox(
                     key: _contentKey,
-                    height: widget.controller.contentHeight -
-                        widget.controller.stickHeight,
+                    height: max(
+                      0.0,
+                      widget.controller.contentHeight -
+                          widget.controller.stickHeight,
+                    ),
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: widget.body,

@@ -3,6 +3,7 @@ import 'package:synchronized/synchronized.dart';
 import 'package:flutter/material.dart';
 import 'small_stick_controller.dart';
 import 'small_refresh.dart';
+import 'dart:math';
 
 //notifier
 class SmallStickPageViewController extends ScrollController
@@ -256,8 +257,11 @@ class _SmallStickPageViewState extends State<SmallStickPageView> {
                 ),
                 SizedBox(
                   key: _contentKey,
-                  height: widget.controller.contentHeight -
-                      widget.controller.stickHeight,
+                  height: max(
+                    0.0,
+                    widget.controller.contentHeight -
+                        widget.controller.stickHeight,
+                  ),
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: widget.body,
